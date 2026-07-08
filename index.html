@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PICU Literature Repository</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --bg-elevated: #ffffff;
+    --border: #e2e6ec;
+    --text: #1a2130;
+    --text-muted: #5b6472;
+    --accent: #2563eb;
+    --accent-soft: #eaf1ff;
+    --tier1: #0f8a5f;
+    --tier1-bg: #e5f6ee;
+    --tier2: #b4790a;
+    --tier2-bg: #fbf1de;
+    --tier3: #6b6f76;
+    --tier3-bg: #eef0f2;
+    --danger: #c0392b;
+    --shadow: 0 1px 2px rgba(20,25,35,.06), 0 4px 16px rgba(20,25,35,.05);
+    --radius: 12px;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1420;
+    --bg-elevated: #171d2b;
+    --border: #2a3244;
+    --text: #e6e9f0;
+    --text-muted: #9aa4b6;
+    --accent: #5b8cff;
+    --accent-soft: #1b2740;
+    --tier1: #3ecf8e;
+    --tier1-bg: #113828;
+    --tier2: #e0ab4a;
+    --tier2-bg: #3a2e13;
+    --tier3: #9aa4b6;
+    --tier3-bg: #232b3b;
+    --danger: #ff6b6b;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 20px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1420; --bg-elevated: #171d2b; --border: #2a3244; --text: #e6e9f0;
+      --text-muted: #9aa4b6; --accent: #5b8cff; --accent-soft: #1b2740;
+      --tier1: #3ecf8e; --tier1-bg: #113828; --tier2: #e0ab4a; --tier2-bg: #3a2e13;
+      --tier3: #9aa4b6; --tier3-bg: #232b3b; --danger: #ff6b6b;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 20px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tier1); box-shadow: 0 0 0 3px var(--tier1-bg); flex-shrink: 0; }
+  .live-dot.off { background: var(--text-muted); box-shadow: 0 0 0 3px var(--border); }
+  .top-actions { display: flex; align-items: center; gap: 8px; }
+  button.icon-btn {
+    border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text);
+    border-radius: 10px; padding: 8px 10px; cursor: pointer; font-size: 14px; position: relative;
+  }
+  button.icon-btn:hover { border-color: var(--accent); }
+  .badge {
+    position: absolute; top: -6px; right: -6px; background: var(--accent); color: #fff;
+    font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px;
+    display: none; align-items: center; justify-content: center; padding: 0 4px;
+  }
+
+  .panel { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px; }
+
+  .search-row { display: flex; gap: 8px; }
+  .search-row input[type=text] {
+    flex: 1; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 14px;
+  }
+  .search-row button.primary {
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 0 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .search-row button.primary:disabled { opacity: .6; cursor: default; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-muted);
+    border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.pin-chip { display: inline-flex; align-items: center; gap: 6px; }
+  .chip.pin-chip .rm { opacity: .6; }
+  .chip.pin-chip .rm:hover { opacity: 1; color: var(--danger); }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+  .filter-group label { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+  .filter-group select, .filter-group input[type=range] { font-size: 13.5px; }
+  select {
+    padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+  }
+  .range-row { display: flex; align-items: center; gap: 8px; }
+  .range-row output { font-size: 13px; color: var(--text); min-width: 70px; }
+
+  .summary-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; }
+  .summary-bar .save-pin-btn {
+    border: 1px dashed var(--border); background: transparent; color: var(--accent);
+    border-radius: 8px; padding: 5px 10px; font-size: 12.5px; cursor: pointer;
+  }
+
+  .status-msg { text-align: center; padding: 40px 16px; color: var(--text-muted); }
+  .status-msg.error { color: var(--danger); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+
+  .card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .tier-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .tier-badge.t1 { background: var(--tier1-bg); color: var(--tier1); }
+  .tier-badge.t2 { background: var(--tier2-bg); color: var(--tier2); }
+  .tier-badge.t3 { background: var(--tier3-bg); color: var(--tier3); }
+  .study-type { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+  .save-btn { border: none; background: transparent; cursor: pointer; font-size: 18px; color: var(--text-muted); line-height: 1; padding: 2px; }
+  .save-btn.saved { color: #e0ab4a; }
+
+  .card h3 { font-size: 15.5px; margin: 0; line-height: 1.35; }
+  .meta-line { font-size: 12.5px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .dots { display: inline-flex; gap: 2px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+  .dot.on { background: var(--accent); }
+
+  .authors { font-size: 12.5px; color: var(--text-muted); }
+  .abstract { font-size: 13px; color: var(--text); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 11px; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 999px; }
+
+  .card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+  .card-actions a, .card-actions button {
+    font-size: 12.5px; text-decoration: none; border: 1px solid var(--border); color: var(--text);
+    background: var(--bg); border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  }
+  .card-actions a:hover, .card-actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(10,14,22,.4); display: none; z-index: 40; }
+  .drawer-overlay.open { display: block; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100%; width: min(380px, 92vw); background: var(--bg-elevated);
+    border-left: 1px solid var(--border); z-index: 50; transform: translateX(100%); transition: transform .2s ease;
+    display: flex; flex-direction: column; }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .drawer-body { padding: 14px 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .drawer-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 13px; }
+  .drawer-item h4 { margin: 0 0 4px; font-size: 13.5px; }
+  .drawer-item .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
+  .drawer-foot { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .drawer-foot button { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; font-size: 13px; }
+  .drawer-foot button.primary { background: var(--accent); color: #fff; border: none; }
+
+  .empty-hint { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 24px 10px; }
+
+  footer.note { margin-top: 24px; font-size: 12px; color: var(--text-muted); text-align: center; }
+  a { color: var(--accent); }
+
+  @media (max-width: 560px) {
+    .search-row { flex-direction: column; }
+    .search-row button.primary { padding: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <span id="liveDot" class="live-dot off" title="Live PubMed status"></span>
+      <h1>PICU Literature Repository</h1>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="themeToggle" title="Toggle dark mode">🌓</button>
+      <button class="icon-btn" id="openSaved" title="Saved articles">
+        ★ Saved <span class="badge" id="savedBadge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="panel">
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Search PICU topic (e.g. sepsis, ECMO, pCART, prediction score)…">
+      <button class="primary" id="searchBtn">Search</button>
+    </div>
+    <div class="chips" id="quickChips"></div>
+    <div class="chips" id="pinChips"></div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <label>Evidence tier</label>
+        <select id="tierSelect">
+          <option value="1">Tier 1 only (RCT / meta-analysis / systematic review)</option>
+          <option value="12" selected>Tier 1 + 2 (adds cohort / registry / multicenter)</option>
+          <option value="123">All high-quality designs</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Time window</label>
+        <div class="range-row">
+          <input type="range" id="yearsRange" min="1" max="5" value="2" step="1">
+          <output id="yearsOut">2 years</output>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Result count</label>
+        <select id="countSelect">
+          <option value="5">5</option>
+          <option value="8" selected>8</option>
+          <option value="12">12</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-bar" id="summaryBar" style="display:none;">
+    <span id="summaryText"></span>
+    <button class="save-pin-btn" id="pinSearchBtn">📌 Pin this search</button>
+  </div>
+
+  <div id="results"></div>
+
+  <footer class="note">
+    Live data from NCBI PubMed (E-utilities). Evidence tier and quality score are computed client-side from
+    publication type, MeSH terms, and journal — always confirm study design against the full text before citing.
+  </footer>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <strong>Saved articles</strong>
+    <button class="icon-btn" id="closeDrawer">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-foot">
+    <button id="exportCsv">Export CSV</button>
+    <button class="primary" id="clearSaved">Clear all</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const root = document.documentElement;
+
+  // ---------- Theme ----------
+  const savedTheme = localStorage.getItem('picu.theme');
+  if (savedTheme) root.setAttribute('data-theme', savedTheme);
+  $('themeToggle').addEventListener('click', () => {
+    const current = root.getAttribute('data-theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('picu.theme', next);
+  });
+
+  // ---------- Constants ----------
+  const ESEARCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi';
+  const EFETCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi';
+
+  const QUICK_TOPICS = [
+    { label: 'pCART / pCREST', q: 'pCART OR pCREST OR (pediatric AND cardiac arrest)' },
+    { label: 'ED transfer / triage', q: '(emergency department OR interfacility) AND (transfer OR triage) AND pediatric critical care' },
+    { label: 'ML / informatics', q: '(machine learning OR artificial intelligence OR clinical informatics) AND pediatric intensive care' },
+    { label: 'ECMO', q: 'extracorporeal membrane oxygenation AND pediatric' },
+    { label: 'Prediction scores', q: '(prediction model OR risk score OR clinical decision rule) AND pediatric intensive care' },
+    { label: 'Sepsis / septic shock', q: 'sepsis OR septic shock AND pediatric intensive care' },
+    { label: 'Mechanical ventilation', q: '(mechanical ventilation OR respiratory failure) AND pediatric intensive care' },
+  ];
+
+  const TOP_JOURNALS = [
+    'pediatr crit care med', 'jama pediatr', 'pediatrics', 'crit care med',
+    'intensive care med', 'lancet child adolesc health', 'jama', 'n engl j med', 'lancet'
+  ];
+
+  const TIER1_PT = ['Randomized Controlled Trial', 'Meta-Analysis', 'Systematic Review', 'Controlled Clinical Trial'];
+  const TIER2_PT = ['Multicenter Study', 'Observational Study', 'Comparative Study', 'Clinical Trial, Phase III', 'Clinical Trial, Phase IV'];
+  const EXCLUDE_PT = ['Case Reports', 'Comment', 'Editorial', 'Letter', 'News', 'Biography', 'Retracted Publication'];
+
+  // ---------- State ----------
+  let saved = new Map(JSON.parse(localStorage.getItem('picu.saved') || '[]'));
+  let pins = JSON.parse(localStorage.getItem('picu.pins') || '[]');
+  let lastQuery = null;
+
+  // ---------- Chips ----------
+  function renderQuickChips() {
+    const wrap = $('quickChips');
+    wrap.innerHTML = '';
+    QUICK_TOPICS.forEach(t => {
+      const c = document.createElement('button');
+      c.className = 'chip';
+      c.type = 'button';
+      c.textContent = t.label;
+      c.addEventListener('click', () => { $('searchInput').value = t.q; runSearch(t.q, t.label); });
+      wrap.appendChild(c);
+    });
+  }
+  function renderPinChips() {
+    const wrap = $('pinChips');
+    wrap.innerHTML = '';
+    pins.forEach((p, i) => {
+      const c = document.createElement('span');
+      c.className = 'chip pin-chip';
+      c.innerHTML = `<span class="label">📌 ${escapeHtml(p.label)}</span> <span class="rm">✕</span>`;
+      c.querySelector('.label').addEventListener('click', () => { $('searchInput').value = p.q; runSearch(p.q, p.label); });
+      c.querySelector('.rm').addEventListener('click', (e) => {
+        e.stopPropagation();
+        pins.splice(i, 1);
+        localStorage.setItem('picu.pins', JSON.stringify(pins));
+        renderPinChips();
+      });
+      wrap.appendChild(c);
+    });
+  }
+
+  $('yearsRange').addEventListener('input', () => {
+    $('yearsOut').textContent = `${$('yearsRange').value} year${$('yearsRange').value == 1 ? '' : 's'}`;
+  });
+  $('yearsOut').textContent = `${$('yearsRange').value} years`;
+
+  $('pinSearchBtn').addEventListener('click', () => {
+    if (!lastQuery) return;
+    const label = prompt('Name this pinned search:', lastQuery.label || lastQuery.q.slice(0, 30));
+    if (!label) return;
+    pins.push({ label, q: lastQuery.q });
+    localStorage.setItem('picu.pins', JSON.stringify(pins));
+    renderPinChips();
+  });
+
+  // ---------- Query building ----------
+  function buildTerm(userQuery, tierMode) {
+    const base = '("intensive care units, pediatric"[Mesh] OR PICU[tiab] OR pediatric intensive care[tiab] OR paediatric intensive care[tiab])';
+    let pt = '';
+    if (tierMode === '1') {
+      pt = ' AND (' + TIER1_PT.map(t => `"${t}"[pt]`).join(' OR ') + ')';
+    } else if (tierMode === '12') {
+      pt = ' AND (' + TIER1_PT.concat(TIER2_PT).map(t => `"${t}"[pt]`).join(' OR ') + ')';
+    }
+    const exclude = ' NOT (' + EXCLUDE_PT.map(t => `"${t}"[pt]`).join(' OR ') + ')';
+    const topic = userQuery && userQuery.trim() ? ` AND (${userQuery})` : '';
+    return `${base}${topic}${pt}${exclude}`;
+  }
+
+  function dateRange(years) {
+    const end = new Date();
+    const start = new Date();
+    start.setFullYear(end.getFullYear() - Number(years));
+    const fmt = (d) => `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+    return { mindate: fmt(start), maxdate: fmt(end) };
+  }
+
+  // ---------- Fetch pipeline ----------
+  async function runSearch(userQuery, label) {
+    const tierMode = $('tierSelect').value;
+    const years = $('yearsRange').value;
+    const count = $('countSelect').value;
+    lastQuery = { q: userQuery, label: label || userQuery, tierMode, years, count };
+
+    const results = $('results');
+    $('summaryBar').style.display = 'none';
+    results.innerHTML = '<div class="status-msg">Searching PubMed…</div>';
+    $('searchBtn').disabled = true;
+    setLive(false);
+
+    try {
+      const term = buildTerm(userQuery, tierMode);
+      const { mindate, maxdate } = dateRange(years);
+
+      const esearchUrl = `${ESEARCH}?db=pubmed&retmode=json&retmax=${count}&sort=pub_date` +
+        `&datetype=pdat&mindate=${mindate}&maxdate=${maxdate}&term=${encodeURIComponent(term)}`;
+      const esearchRes = await fetch(esearchUrl);
+      if (!esearchRes.ok) throw new Error(`PubMed search failed (HTTP ${esearchRes.status})`);
+      const esearchJson = await esearchRes.json();
+      const ids = (esearchJson.esearchresult && esearchJson.esearchresult.idlist) || [];
+
+      setLive(true);
+
+      if (ids.length === 0) {
+        results.innerHTML = `<div class="status-msg">No results. Try widening the time window or lowering the evidence tier.</div>`;
+        return;
+      }
+
+      const efetchUrl = `${EFETCH}?db=pubmed&retmode=xml&id=${ids.join(',')}`;
+      const efetchRes = await fetch(efetchUrl);
+      if (!efetchRes.ok) throw new Error(`PubMed fetch failed (HTTP ${efetchRes.status})`);
+      const xmlText = await efetchRes.text();
+      const articles = parsePubmedXml(xmlText).map(classify);
+
+      // sort by tier then quality
+      articles.sort((a, b) => a.tierRank - b.tierRank || b.quality - a.quality);
+
+      $('summaryText').textContent = `${articles.length} article${articles.length === 1 ? '' : 's'} · ${label || userQuery} · last ${years} year${years == 1 ? '' : 's'}`;
+      $('summaryBar').style.display = 'flex';
+      renderResults(articles);
+    } catch (err) {
+      console.error(err);
+      results.innerHTML = `<div class="status-msg error">Something went wrong: ${escapeHtml(err.message)}. Check your connection and try again.</div>`;
+      setLive(false);
+    } finally {
+      $('searchBtn').disabled = false;
+    }
+  }
+
+  function setLive(ok) {
+    $('liveDot').className = 'live-dot' + (ok ? '' : ' off');
+  }
+
+  // ---------- XML parsing ----------
+  function parsePubmedXml(xmlText) {
+    const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    const nodes = Array.from(doc.getElementsByTagName('PubmedArticle'));
+    return nodes.map(node => {
+      const get = (tag) => node.getElementsByTagName(tag);
+      const pmid = text(get('PMID')[0]);
+      const title = text(get('ArticleTitle')[0]);
+
+      const abstractParts = Array.from(node.getElementsByTagName('AbstractText')).map(el => {
+        const label = el.getAttribute('Label');
+        const t = text(el);
+        return label ? `${label}: ${t}` : t;
+      });
+      const abstract = abstractParts.join(' ') || 'No abstract available.';
+
+      const authors = Array.from(node.getElementsByTagName('Author')).slice(0, 6).map(a => {
+        const last = text(a.getElementsByTagName('LastName')[0]);
+        const initials = text(a.getElementsByTagName('Initials')[0]);
+        return last ? `${last} ${initials}`.trim() : null;
+      }).filter(Boolean);
+
+      const journalNode = node.getElementsByTagName('Journal')[0];
+      const journal = journalNode ? text(journalNode.getElementsByTagName('Title')[0]) || text(journalNode.getElementsByTagName('ISOAbbreviation')[0]) : '';
+      const journalAbbrev = journalNode ? text(journalNode.getElementsByTagName('ISOAbbreviation')[0]) : '';
+
+      let year = '';
+      const pubDate = node.getElementsByTagName('PubDate')[0];
+      if (pubDate) {
+        year = text(pubDate.getElementsByTagName('Year')[0]);
+        if (!year) {
+          const medlineDate = text(pubDate.getElementsByTagName('MedlineDate')[0]);
+          const m = medlineDate.match(/\d{4}/);
+          year = m ? m[0] : '';
+        }
+      }
+
+      const pubTypes = Array.from(node.getElementsByTagName('PublicationType')).map(t => text(t));
+
+      let doi = '';
+      Array.from(node.getElementsByTagName('ArticleId')).forEach(a => {
+        if (a.getAttribute('IdType') === 'doi') doi = text(a);
+      });
+      Array.from(node.getElementsByTagName('ELocationID')).forEach(a => {
+        if (a.getAttribute('EIdType') === 'doi') doi = text(a);
+      });
+
+      const meshTerms = Array.from(node.getElementsByTagName('MeshHeading'))
+        .map(m => text(m.getElementsByTagName('DescriptorName')[0]))
+        .filter(Boolean);
+
+      return { pmid, title, abstract, authors, journal, journalAbbrev, year, pubTypes, doi, meshTerms };
+    });
+  }
+  function text(node) { return node ? (node.textContent || '').trim() : ''; }
+
+  // ---------- Classification ----------
+  function classify(a) {
+    const pts = a.pubTypes.map(p => p.toLowerCase());
+    let tier = 3, tierRank = 3, studyType = a.pubTypes[0] || 'Journal Article';
+
+    if (pts.some(p => p.includes('meta-analysis'))) { tier = 1; studyType = 'Meta-Analysis'; }
+    else if (pts.some(p => p.includes('systematic review'))) { tier = 1; studyType = 'Systematic Review'; }
+    else if (pts.some(p => p.includes('randomized controlled trial'))) { tier = 1; studyType = 'RCT'; }
+    else if (pts.some(p => p.includes('controlled clinical trial'))) { tier = 1; studyType = 'Controlled Clinical Trial'; }
+    else if (pts.some(p => p.includes('multicenter study'))) { tier = 2; studyType = 'Multicenter Study'; }
+    else if (pts.some(p => p.includes('observational study'))) { tier = 2; studyType = 'Observational Study'; }
+    else if (/prospective cohort|registry/i.test(a.abstract)) { tier = 2; studyType = 'Prospective Cohort'; }
+    else if (pts.some(p => p.includes('comparative study'))) { tier = 2; studyType = 'Comparative Study'; }
+    else if (/retrospective/i.test(a.abstract)) { tier = 3; studyType = 'Retrospective Study'; }
+
+    tierRank = tier;
+
+    let quality = tier === 1 ? 5 : tier === 2 ? 3 : 2;
+    if (TOP_JOURNALS.some(j => (a.journalAbbrev || a.journal).toLowerCase().includes(j))) {
+      quality = Math.min(5, quality + 1);
+    }
+
+    const tags = Array.from(new Set(a.meshTerms.filter(m =>
+      !/pediatric|child|infant|human/i.test(m)
+    ).slice(0, 4)));
+
+    const summary = summarize(a.abstract);
+
+    return { ...a, tier, tierRank, studyType, quality, tags, summary };
+  }
+
+  function summarize(abstract) {
+    const conclusion = abstract.match(/conclusions?:?\s*([^.]*\.(?:[^.]*\.)?)/i);
+    if (conclusion) return conclusion[1].trim();
+    const sentences = abstract.split(/(?<=[.!?])\s+/).slice(0, 2);
+    return sentences.join(' ');
+  }
+
+  // ---------- Rendering ----------
+  function renderResults(articles) {
+    const results = $('results');
+    if (articles.length === 0) {
+      results.innerHTML = '<div class="status-msg">No results.</div>';
+      return;
+    }
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    articles.forEach(a => grid.appendChild(renderCard(a)));
+    results.innerHTML = '';
+    results.appendChild(grid);
+  }
+
+  function renderCard(a) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.pmid = a.pmid;
+    const tierClass = a.tier === 1 ? 't1' : a.tier === 2 ? 't2' : 't3';
+    const isSaved = saved.has(a.pmid);
+
+    const dots = Array.from({ length: 5 }, (_, i) => `<span class="dot ${i < a.quality ? 'on' : ''}"></span>`).join('');
+
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="tier-badge ${tierClass}">Tier ${a.tier}</span>
+        <button class="save-btn ${isSaved ? 'saved' : ''}" title="Save article">${isSaved ? '★' : '☆'}</button>
+      </div>
+      <h3>${escapeHtml(a.title)}</h3>
+      <div class="meta-line">
+        <span class="study-type">${escapeHtml(a.studyType)}</span>
+        <span>·</span>
+        <span>${escapeHtml(a.journalAbbrev || a.journal)}</span>
+        <span>·</span>
+        <span>${escapeHtml(a.year)}</span>
+        <span class="dots" title="Quality score ${a.quality}/5">${dots}</span>
+      </div>
+      <div class="authors">${escapeHtml(a.authors.join(', ') || 'Authors not listed')}</div>
+      <div class="abstract">${escapeHtml(a.summary)}</div>
+      <div class="tags">${a.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+      <div class="card-actions">
+        <a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank" rel="noopener">PMID ${a.pmid} ↗</a>
+        ${a.doi ? `<a href="https://doi.org/${encodeURIComponent(a.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
+      </div>
+    `;
+    card.querySelector('.save-btn').addEventListener('click', () => toggleSave(a, card.querySelector('.save-btn')));
+    return card;
+  }
+
+  function toggleSave(a, btn) {
+    if (saved.has(a.pmid)) {
+      saved.delete(a.pmid);
+      btn.classList.remove('saved');
+      btn.textContent = '☆';
+    } else {
+      saved.set(a.pmid, a);
+      btn.classList.add('saved');
+      btn.textContent = '★';
+    }
+    persistSaved();
+    updateSavedBadge();
+  }
+  function persistSaved() {
+    localStorage.setItem('picu.saved', JSON.stringify(Array.from(saved.entries())));
+  }
+  function updateSavedBadge() {
+    const n = saved.size;
+    const badge = $('savedBadge');
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'flex' : 'none';
+  }
+
+  // ---------- Saved drawer ----------
+  function openDrawer() {
+    renderDrawer();
+    $('drawer').classList.add('open');
+    $('drawerOverlay').classList.add('open');
+  }
+  function closeDrawerFn() {
+    $('drawer').classList.remove('open');
+    $('drawerOverlay').classList.remove('open');
+  }
+  function renderDrawer() {
+    const body = $('drawerBody');
+    if (saved.size === 0) {
+      body.innerHTML = '<div class="empty-hint">No saved articles yet. Click the ☆ on any card to bookmark it here.</div>';
+      return;
+    }
+    body.innerHTML = '';
+    Array.from(saved.values()).forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'drawer-item';
+      item.innerHTML = `
+        <h4>${escapeHtml(a.title)}</h4>
+        <div class="meta-line">${escapeHtml(a.journalAbbrev || a.journal)} · ${escapeHtml(a.year)} · Tier ${a.tier}</div>
+        <div class="row">
+          <a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank" rel="noopener">PMID ${a.pmid} ↗</a>
+          <button data-pmid="${a.pmid}" class="rm-saved">Remove</button>
+        </div>
+      `;
+      item.querySelector('.rm-saved').addEventListener('click', () => {
+        saved.delete(a.pmid);
+        persistSaved();
+        updateSavedBadge();
+        renderDrawer();
+        const btn = document.querySelector(`.card[data-pmid="${a.pmid}"] .save-btn`);
+        if (btn) { btn.classList.remove('saved'); btn.textContent = '☆'; }
+      });
+      body.appendChild(item);
+    });
+  }
+  $('openSaved').addEventListener('click', openDrawer);
+  $('closeDrawer').addEventListener('click', closeDrawerFn);
+  $('drawerOverlay').addEventListener('click', closeDrawerFn);
+  $('clearSaved').addEventListener('click', () => {
+    if (saved.size === 0) return;
+    if (!confirm('Remove all saved articles?')) return;
+    saved.clear();
+    persistSaved();
+    updateSavedBadge();
+    renderDrawer();
+  });
+  $('exportCsv').addEventListener('click', () => {
+    if (saved.size === 0) return;
+    const rows = [['PMID', 'Title', 'Journal', 'Year', 'Tier', 'Study Type', 'Quality', 'Authors', 'DOI', 'PubMed URL']];
+    Array.from(saved.values()).forEach(a => {
+      rows.push([
+        a.pmid, a.title, a.journalAbbrev || a.journal, a.year, a.tier, a.studyType, a.quality,
+        a.authors.join('; '), a.doi, `https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/`
+      ]);
+    });
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `picu-saved-articles-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+  function csvEscape(v) {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // ---------- Wire up search ----------
+  $('searchBtn').addEventListener('click', () => runSearch($('searchInput').value.trim(), $('searchInput').value.trim()));
+  $('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('searchBtn').click(); });
+
+  // ---------- Init ----------
+  renderQuickChips();
+  renderPinChips();
+  updateSavedBadge();
+  runSearch('', 'Recent high-tier PICU literature');
+})();
+</script>
+</body>
+</html>
