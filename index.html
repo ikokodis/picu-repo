@@ -346,7 +346,23 @@
 
   // ---------- Query building ----------
   function buildTerm(userQuery, tierMode) {
-    const base = '("intensive care units, pediatric"[Mesh] OR PICU[tiab] OR pediatric intensive care[tiab] OR paediatric intensive care[tiab])';
+    // Requiring literal PICU/ICU wording misses content indexed only by clinical topic —
+    // e.g. the 2026 Surviving Sepsis Campaign pediatric guidelines carry MeSH terms
+    // "Sepsis"/"Shock, Septic"/"Child" but never "Intensive Care Units, Pediatric" and
+    // never say "PICU" in the title or abstract. So also match the age group against a
+    // curated set of MeSH terms for conditions that are inherently pediatric-critical-care.
+    const PEDS_AGE_MESH = '(child[Mesh] OR infant[Mesh] OR adolescent[Mesh])';
+    const CRITICAL_ILLNESS_MESH = [
+      'sepsis', 'shock, septic', 'shock, cardiogenic', 'respiratory insufficiency',
+      'respiratory distress syndrome', 'heart arrest', 'extracorporeal membrane oxygenation',
+      'multiple organ failure', 'status epilepticus', 'brain injuries, traumatic', 'acute kidney injury'
+    ].map(t => `"${t}"[Mesh]`).join(' OR ');
+    const base = `(
+      "intensive care units, pediatric"[Mesh] OR PICU[tiab] OR pediatric intensive care[tiab] OR paediatric intensive care[tiab]
+      OR ("critical illness"[Mesh] AND ${PEDS_AGE_MESH})
+      OR ("critical care"[Mesh] AND ${PEDS_AGE_MESH})
+      OR ((${CRITICAL_ILLNESS_MESH}) AND ${PEDS_AGE_MESH})
+    )`;
     const journalClause = '(' + TOP_JOURNALS_TA.map(j => `"${j}"[ta]`).join(' OR ') + ')';
     let pt = '';
     if (tierMode === '1') {
@@ -384,7 +400,15 @@
       const term = buildTerm(userQuery, tierMode);
       const { mindate, maxdate } = dateRange(years);
 
-      const esearchUrl = `${ESEARCH}?db=pubmed&retmode=json&retmax=${count}&sort=pub_date` +
+      // Fetch a larger candidate pool than the display count: PubMed's sort=pub_date
+      // orders by the formal print-issue date, which for ahead-of-print articles can be
+      // months later than when the article was actually available — so a genuinely newer
+      // article can rank below one with an inflated future print date. We re-sort
+      // client-side by actual electronic publication date (see classify()) and slice to
+      // `count` afterward, so a small server-side retmax would silently truncate away
+      // exactly the articles this correction is meant to surface.
+      const poolSize = Math.min(Math.max(Number(count) * 8, 50), 100);
+      const esearchUrl = `${ESEARCH}?db=pubmed&retmode=json&retmax=${poolSize}&sort=pub_date` +
         `&datetype=pdat&mindate=${mindate}&maxdate=${maxdate}&term=${encodeURIComponent(term)}`;
       const esearchRes = await fetch(esearchUrl);
       if (!esearchRes.ok) throw new Error(`PubMed search failed (HTTP ${esearchRes.status})`);
@@ -402,10 +426,12 @@
       const efetchRes = await fetch(efetchUrl);
       if (!efetchRes.ok) throw new Error(`PubMed fetch failed (HTTP ${efetchRes.status})`);
       const xmlText = await efetchRes.text();
-      const articles = parsePubmedXml(xmlText).map(classify);
+      const allArticles = parsePubmedXml(xmlText).map(classify);
 
-      // sort by tier then quality
-      articles.sort((a, b) => a.tierRank - b.tierRank || b.quality - a.quality);
+      // Sort by tier, then by true recency (electronic pub date, not the print-issue
+      // date PubMed's own sort used) — see poolSize comment above — then quality.
+      allArticles.sort((a, b) => a.tierRank - b.tierRank || b.sortDate - a.sortDate || b.quality - a.quality);
+      const articles = allArticles.slice(0, Number(count));
 
       $('summaryText').textContent = `${articles.length} article${articles.length === 1 ? '' : 's'} · ${label || userQuery} · last ${years} year${years == 1 ? '' : 's'}`;
       $('summaryBar').style.display = 'flex';
@@ -451,6 +477,7 @@
 
       let year = '';
       const pubDate = node.getElementsByTagName('PubDate')[0];
+      let pubDateParts = null;
       if (pubDate) {
         year = text(pubDate.getElementsByTagName('Year')[0]);
         if (!year) {
@@ -458,7 +485,23 @@
           const m = medlineDate.match(/\d{4}/);
           year = m ? m[0] : '';
         }
+        pubDateParts = { y: year, m: text(pubDate.getElementsByTagName('Month')[0]), d: text(pubDate.getElementsByTagName('Day')[0]) };
       }
+
+      // The print/issue PubDate above can be months ahead of when an article was
+      // actually available (common with epub-ahead-of-print). ArticleDate (Electronic)
+      // and the Entrez PubMedPubDate reflect true availability, so prefer those for
+      // recency sorting — see the poolSize/sortDate comments where this is consumed.
+      const electronicDateEl = Array.from(node.getElementsByTagName('ArticleDate'))
+        .find(el => el.getAttribute('DateType') === 'Electronic');
+      const electronicDateParts = electronicDateEl
+        ? { y: text(electronicDateEl.getElementsByTagName('Year')[0]), m: text(electronicDateEl.getElementsByTagName('Month')[0]), d: text(electronicDateEl.getElementsByTagName('Day')[0]) }
+        : null;
+      const entrezDateEl = Array.from(node.getElementsByTagName('PubMedPubDate'))
+        .find(el => el.getAttribute('PubStatus') === 'entrez');
+      const entrezDateParts = entrezDateEl
+        ? { y: text(entrezDateEl.getElementsByTagName('Year')[0]), m: text(entrezDateEl.getElementsByTagName('Month')[0]), d: text(entrezDateEl.getElementsByTagName('Day')[0]) }
+        : null;
 
       const pubTypes = Array.from(node.getElementsByTagName('PublicationType')).map(t => text(t));
 
@@ -474,10 +517,26 @@
         .map(m => text(m.getElementsByTagName('DescriptorName')[0]))
         .filter(Boolean);
 
-      return { pmid, title, abstract, authors, journal, journalAbbrev, year, pubTypes, doi, meshTerms };
+      return { pmid, title, abstract, authors, journal, journalAbbrev, year, pubTypes, doi, meshTerms, pubDateParts, electronicDateParts, entrezDateParts };
     });
   }
   function text(node) { return node ? (node.textContent || '').trim() : ''; }
+
+  const MONTH_MAP = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  // Converts {y,m,d} (month as number or 3-letter name) to a timestamp; missing month/day
+  // default to the start of the period. Returns 0 (sorts last, descending) if no year.
+  function datePartsToTimestamp(parts) {
+    if (!parts || !parts.y) return 0;
+    const y = parseInt(parts.y, 10);
+    if (!y) return 0;
+    let mo = 0;
+    if (parts.m) {
+      const asNum = parseInt(parts.m, 10);
+      mo = !isNaN(asNum) ? asNum - 1 : (MONTH_MAP[parts.m.slice(0, 3).toLowerCase()] ?? 0);
+    }
+    const day = parseInt(parts.d, 10) || 1;
+    return new Date(y, mo, day).getTime();
+  }
 
   // ---------- Classification ----------
   function classify(a) {
@@ -509,7 +568,11 @@
 
     const summary = summarize(a.abstract);
 
-    return { ...a, tier, tierRank, studyType, quality, tags, summary };
+    const sortDate = datePartsToTimestamp(a.electronicDateParts) ||
+      datePartsToTimestamp(a.entrezDateParts) ||
+      datePartsToTimestamp(a.pubDateParts);
+
+    return { ...a, tier, tierRank, studyType, quality, tags, summary, sortDate };
   }
 
   function summarize(abstract) {
