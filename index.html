@@ -200,7 +200,7 @@
       <div class="filter-group">
         <label>Evidence tier</label>
         <select id="tierSelect">
-          <option value="1">Tier 1 only (RCT / meta-analysis / systematic review)</option>
+          <option value="1">Tier 1 only (RCT / meta-analysis / systematic review / guideline)</option>
           <option value="12" selected>Tier 1 + 2 (adds cohort / registry / multicenter)</option>
           <option value="123">All high-quality designs</option>
         </select>
@@ -285,7 +285,7 @@
     'intensive care med', 'lancet child adolesc health', 'jama', 'n engl j med', 'lancet'
   ];
 
-  const TIER1_PT = ['Randomized Controlled Trial', 'Meta-Analysis', 'Systematic Review', 'Controlled Clinical Trial'];
+  const TIER1_PT = ['Randomized Controlled Trial', 'Meta-Analysis', 'Systematic Review', 'Controlled Clinical Trial', 'Practice Guideline', 'Guideline'];
   const TIER2_PT = ['Multicenter Study', 'Observational Study', 'Comparative Study', 'Clinical Trial, Phase III', 'Clinical Trial, Phase IV'];
   const EXCLUDE_PT = ['Case Reports', 'Comment', 'Editorial', 'Letter', 'News', 'Biography', 'Retracted Publication'];
 
@@ -478,7 +478,9 @@
     const pts = a.pubTypes.map(p => p.toLowerCase());
     let tier = 3, tierRank = 3, studyType = a.pubTypes[0] || 'Journal Article';
 
-    if (pts.some(p => p.includes('meta-analysis'))) { tier = 1; studyType = 'Meta-Analysis'; }
+    if (pts.some(p => p.includes('practice guideline'))) { tier = 1; studyType = 'Practice Guideline'; }
+    else if (pts.some(p => p.includes('guideline'))) { tier = 1; studyType = 'Guideline'; }
+    else if (pts.some(p => p.includes('meta-analysis'))) { tier = 1; studyType = 'Meta-Analysis'; }
     else if (pts.some(p => p.includes('systematic review'))) { tier = 1; studyType = 'Systematic Review'; }
     else if (pts.some(p => p.includes('randomized controlled trial'))) { tier = 1; studyType = 'RCT'; }
     else if (pts.some(p => p.includes('controlled clinical trial'))) { tier = 1; studyType = 'Controlled Clinical Trial'; }
