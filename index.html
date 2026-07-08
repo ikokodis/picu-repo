@@ -200,8 +200,8 @@
       <div class="filter-group">
         <label>Evidence tier</label>
         <select id="tierSelect">
-          <option value="1">Tier 1 only (RCT / meta-analysis / systematic review / guideline)</option>
-          <option value="12" selected>Tier 1 + 2 (adds cohort / registry / multicenter)</option>
+          <option value="1">Tier 1 + flagship journals (RCT / meta-analysis / systematic review / guideline, plus anything in Pediatrics, PCCM, CCM, JAMA family, Lancet family, NEJM)</option>
+          <option value="12" selected>Tier 1 + 2 + flagship journals (adds cohort / registry / multicenter)</option>
           <option value="123">All high-quality designs</option>
         </select>
       </div>
@@ -284,6 +284,11 @@
     'pediatr crit care med', 'jama pediatr', 'pediatrics', 'crit care med',
     'intensive care med', 'lancet child adolesc health', 'jama', 'n engl j med', 'lancet'
   ];
+  // Exact NLM title abbreviations for PubMed [ta] field-tag matching (case-sensitive query, not the bonus check above).
+  const TOP_JOURNALS_TA = [
+    'Pediatrics', 'Pediatr Crit Care Med', 'Crit Care Med', 'JAMA', 'JAMA Pediatr',
+    'Lancet Child Adolesc Health', 'Intensive Care Med', 'N Engl J Med', 'Lancet'
+  ];
 
   const TIER1_PT = ['Randomized Controlled Trial', 'Meta-Analysis', 'Systematic Review', 'Controlled Clinical Trial', 'Practice Guideline', 'Guideline'];
   const TIER2_PT = ['Multicenter Study', 'Observational Study', 'Comparative Study', 'Clinical Trial, Phase III', 'Clinical Trial, Phase IV'];
@@ -342,11 +347,12 @@
   // ---------- Query building ----------
   function buildTerm(userQuery, tierMode) {
     const base = '("intensive care units, pediatric"[Mesh] OR PICU[tiab] OR pediatric intensive care[tiab] OR paediatric intensive care[tiab])';
+    const journalClause = '(' + TOP_JOURNALS_TA.map(j => `"${j}"[ta]`).join(' OR ') + ')';
     let pt = '';
     if (tierMode === '1') {
-      pt = ' AND (' + TIER1_PT.map(t => `"${t}"[pt]`).join(' OR ') + ')';
+      pt = ' AND ((' + TIER1_PT.map(t => `"${t}"[pt]`).join(' OR ') + `) OR ${journalClause})`;
     } else if (tierMode === '12') {
-      pt = ' AND (' + TIER1_PT.concat(TIER2_PT).map(t => `"${t}"[pt]`).join(' OR ') + ')';
+      pt = ' AND ((' + TIER1_PT.concat(TIER2_PT).map(t => `"${t}"[pt]`).join(' OR ') + `) OR ${journalClause})`;
     }
     const exclude = ' NOT (' + EXCLUDE_PT.map(t => `"${t}"[pt]`).join(' OR ') + ')';
     const topic = userQuery && userQuery.trim() ? ` AND (${userQuery})` : '';
