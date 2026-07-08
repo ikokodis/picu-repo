@@ -186,6 +186,7 @@
   .landmark-item .lm-type.trial { background: var(--tier2-bg); color: var(--tier2); }
   .landmark-item .lm-title { font-weight: 600; }
   .landmark-item .lm-meta { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
+  .landmark-item .lm-summary { font-size: 12px; margin-top: 6px; line-height: 1.4; }
   .landmark-item .lm-links { margin-top: 4px; display: flex; gap: 10px; }
   .landmark-item .lm-links a { font-size: 11.5px; }
 
@@ -769,48 +770,48 @@
   // update manually as new editions of these guidelines are published.
   const LANDMARKS = [
     { topic: 'Sepsis & Septic Shock', items: [
-      { title: 'Surviving Sepsis Campaign International Guidelines for the Management of Sepsis and Septic Shock in Children (2026)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2026, pmid: '41869844', doi: '10.1097/PCC.0000000000003927' },
-      { title: 'Surviving Sepsis Campaign International Guidelines on the Management of Septic Shock and Sepsis-Associated Organ Dysfunction in Children (2020)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2020, pmid: '32032273', doi: '10.1097/PCC.0000000000002198' },
-      { title: 'FEAST: Mortality after fluid bolus in African children with severe infection', type: 'Trial', journal: 'N Engl J Med', year: 2011, pmid: '21615299', doi: '10.1056/NEJMoa1101549' },
+      { title: 'Surviving Sepsis Campaign International Guidelines for the Management of Sepsis and Septic Shock in Children (2026)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2026, pmid: '41869844', doi: '10.1097/PCC.0000000000003927', summary: 'Latest update to the pediatric sepsis guidelines from 68 international experts, revising recommendations on fluid resuscitation, vasoactive agents, and adjunctive therapies.' },
+      { title: 'Surviving Sepsis Campaign International Guidelines on the Management of Septic Shock and Sepsis-Associated Organ Dysfunction in Children (2020)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2020, pmid: '32032273', doi: '10.1097/PCC.0000000000002198', summary: 'First dedicated pediatric Surviving Sepsis guideline, covering fluid resuscitation strategy, vasoactive agent choice, and corticosteroid and adjunctive therapy use in septic shock.' },
+      { title: 'FEAST: Mortality after fluid bolus in African children with severe infection', type: 'Trial', journal: 'N Engl J Med', year: 2011, pmid: '21615299', doi: '10.1056/NEJMoa1101549', summary: 'RCT in resource-limited African settings found that fluid boluses (albumin or saline) increased 48-hour mortality compared with no bolus in children with severe febrile illness and impaired perfusion, challenging aggressive fluid resuscitation in that context.' },
     ]},
     { topic: 'Mechanical Ventilation & ARDS', items: [
-      { title: 'PALICC-2: Second International Guidelines for the Diagnosis and Management of Pediatric ARDS (Executive Summary)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2023, pmid: '36661420', doi: '10.1097/PCC.0000000000003147' },
-      { title: 'PALICC: Pediatric Acute Respiratory Distress Syndrome — Definition, Incidence, and Epidemiology', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2015, pmid: '26035358', doi: '10.1097/PCC.0000000000000432' },
-      { title: 'RESTORE: Protocolized Sedation vs Usual Care in Pediatric Patients Mechanically Ventilated for Acute Respiratory Failure', type: 'Trial', journal: 'JAMA', year: 2015, pmid: '25602358', doi: '10.1001/jama.2014.18399' },
+      { title: 'PALICC-2: Second International Guidelines for the Diagnosis and Management of Pediatric ARDS (Executive Summary)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2023, pmid: '36661420', doi: '10.1097/PCC.0000000000003147', summary: 'Updated the 2015 PARDS consensus across 11 topic areas — definition, ventilation strategy, monitoring, and adjunctive therapies — based on evidence accumulated since PALICC-1.' },
+      { title: 'PALICC: Pediatric Acute Respiratory Distress Syndrome — Definition, Incidence, and Epidemiology', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2015, pmid: '26035358', doi: '10.1097/PCC.0000000000000432', summary: 'Established the first pediatric-specific PARDS definition (oxygenation index/SpO2-based), replacing direct application of the adult Berlin ARDS criteria to children.' },
+      { title: 'RESTORE: Protocolized Sedation vs Usual Care in Pediatric Patients Mechanically Ventilated for Acute Respiratory Failure', type: 'Trial', journal: 'JAMA', year: 2015, pmid: '25602358', doi: '10.1001/jama.2014.18399', summary: 'Cluster RCT across 31 PICUs found a nurse-implemented, goal-directed sedation protocol did not reduce ventilator days compared with usual sedation care.' },
     ]},
     { topic: 'ECMO', items: [
-      { title: 'ELSO Guidelines for Adult and Pediatric Extracorporeal Membrane Oxygenation Circuits', type: 'Guideline', journal: 'ASAIO J', year: 2022, pmid: '35089258', doi: '10.1097/MAT.0000000000001630' },
-      { title: 'UK Collaborative Randomised Trial of Neonatal Extracorporeal Membrane Oxygenation', type: 'Trial', journal: 'Lancet', year: 1996, pmid: '8676720', doi: '' },
+      { title: 'ELSO Guidelines for Adult and Pediatric Extracorporeal Membrane Oxygenation Circuits', type: 'Guideline', journal: 'ASAIO J', year: 2022, pmid: '35089258', doi: '10.1097/MAT.0000000000001630', summary: 'Consensus guidance on ECMO circuit design, components, and management across patient populations, based on collective clinical experience rather than randomized trial evidence.' },
+      { title: 'UK Collaborative Randomised Trial of Neonatal Extracorporeal Membrane Oxygenation', type: 'Trial', journal: 'Lancet', year: 1996, pmid: '8676720', doi: '', summary: 'Landmark RCT in near-term neonates with severe respiratory failure found that referral for ECMO improved survival without severe disability compared with conventional management, establishing the evidence base for neonatal ECMO.' },
     ]},
     { topic: 'Cardiac Arrest & Post-Resuscitation', items: [
-      { title: 'THAPCA-OH: Therapeutic Hypothermia after Out-of-Hospital Cardiac Arrest in Children', type: 'Trial', journal: 'N Engl J Med', year: 2015, pmid: '25913022', doi: '10.1056/NEJMoa1411480' },
-      { title: 'THAPCA-IH: Therapeutic Hypothermia after In-Hospital Cardiac Arrest in Children', type: 'Trial', journal: 'N Engl J Med', year: 2017, pmid: '28118559', doi: '10.1056/NEJMoa1610493' },
+      { title: 'THAPCA-OH: Therapeutic Hypothermia after Out-of-Hospital Cardiac Arrest in Children', type: 'Trial', journal: 'N Engl J Med', year: 2015, pmid: '25913022', doi: '10.1056/NEJMoa1411480', summary: 'RCT found no significant difference in 12-month survival with good neurobehavioral outcome between therapeutic hypothermia (33.0°C) and therapeutic normothermia (36.8°C) after pediatric out-of-hospital cardiac arrest.' },
+      { title: 'THAPCA-IH: Therapeutic Hypothermia after In-Hospital Cardiac Arrest in Children', type: 'Trial', journal: 'N Engl J Med', year: 2017, pmid: '28118559', doi: '10.1056/NEJMoa1610493', summary: 'Companion trial for in-hospital pediatric cardiac arrest likewise found no significant survival or neurobehavioral benefit of therapeutic hypothermia over normothermia; the trial was stopped early for futility.' },
     ]},
     { topic: 'Traumatic Brain Injury', items: [
-      { title: 'Guidelines for the Management of Pediatric Severe Traumatic Brain Injury, Third Edition', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2019, pmid: '30830016', doi: '10.1097/PCC.0000000000001736' },
+      { title: 'Guidelines for the Management of Pediatric Severe Traumatic Brain Injury, Third Edition', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2019, pmid: '30830016', doi: '10.1097/PCC.0000000000001736', summary: 'Updated Brain Trauma Foundation recommendations on ICP/CPP management, neuroimaging, hyperosmolar therapy, sedation, seizure prophylaxis, and temperature control; none of the 22 recommendations reached Level I evidence.' },
     ]},
     { topic: 'Nutrition', items: [
-      { title: 'ASPEN/SCCM Guidelines for the Provision and Assessment of Nutrition Support Therapy in the Pediatric Critically Ill Patient', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2017, pmid: '28691958', doi: '10.1097/PCC.0000000000001134' },
+      { title: 'ASPEN/SCCM Guidelines for the Provision and Assessment of Nutrition Support Therapy in the Pediatric Critically Ill Patient', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2017, pmid: '28691958', doi: '10.1097/PCC.0000000000001134', summary: 'First joint ASPEN/SCCM guideline on nutrition assessment and enteral/parenteral support timing, energy targets, and protein delivery for critically ill children.' },
     ]},
     { topic: 'Sedation, Analgesia & Delirium', items: [
-      { title: 'RESTORE: Protocolized Sedation vs Usual Care in Pediatric Patients Mechanically Ventilated for Acute Respiratory Failure', type: 'Trial', journal: 'JAMA', year: 2015, pmid: '25602358', doi: '10.1001/jama.2014.18399' },
-      { title: 'Cornell Assessment of Pediatric Delirium: A Valid, Rapid, Observational Tool for Screening Delirium', type: 'Trial', journal: 'Crit Care Med', year: 2014, pmid: '24145848', doi: '10.1097/CCM.0b013e3182a66b76' },
+      { title: 'RESTORE: Protocolized Sedation vs Usual Care in Pediatric Patients Mechanically Ventilated for Acute Respiratory Failure', type: 'Trial', journal: 'JAMA', year: 2015, pmid: '25602358', doi: '10.1001/jama.2014.18399', summary: 'Cluster RCT across 31 PICUs found a nurse-implemented, goal-directed sedation protocol did not reduce ventilator days compared with usual sedation care.' },
+      { title: 'Cornell Assessment of Pediatric Delirium: A Valid, Rapid, Observational Tool for Screening Delirium', type: 'Trial', journal: 'Crit Care Med', year: 2014, pmid: '24145848', doi: '10.1097/CCM.0b013e3182a66b76', summary: 'Validated a rapid, nurse-administered bedside delirium screening tool against psychiatrist DSM-IV diagnosis as the reference standard, now the standard PICU delirium screen.' },
     ]},
     { topic: 'Brain Death Determination', items: [
-      { title: 'Pediatric and Adult Brain Death/Death by Neurologic Criteria Consensus Guideline (AAN/AAP/CNS/SCCM, 2023)', type: 'Guideline', journal: 'Neurology', year: 2023, pmid: '37821233', doi: '10.1212/WNL.0000000000207740' },
-      { title: 'Guidelines for the Determination of Brain Death in Infants and Children: An Update of the 1987 Task Force Recommendations', type: 'Guideline', journal: 'Crit Care Med', year: 2011, pmid: '21849823', doi: '10.1097/CCM.0b013e31821f0d4f' },
+      { title: 'Pediatric and Adult Brain Death/Death by Neurologic Criteria Consensus Guideline (AAN/AAP/CNS/SCCM, 2023)', type: 'Guideline', journal: 'Neurology', year: 2023, pmid: '37821233', doi: '10.1212/WNL.0000000000207740', summary: 'Unified adult and pediatric brain death/death-by-neurologic-criteria determination into a single guideline, adding specific guidance for ECMO, targeted temperature management, and primary infratentorial injury.' },
+      { title: 'Guidelines for the Determination of Brain Death in Infants and Children: An Update of the 1987 Task Force Recommendations', type: 'Guideline', journal: 'Crit Care Med', year: 2011, pmid: '21849823', doi: '10.1097/CCM.0b013e31821f0d4f', summary: 'Revised the original 1987 pediatric brain death criteria using GRADE methodology, clarifying the clinical exam, apnea testing, and ancillary study requirements.' },
     ]},
     { topic: 'AKI & CRRT', items: [
-      { title: 'AWARE: Epidemiology of Acute Kidney Injury in Critically Ill Children and Young Adults', type: 'Trial', journal: 'N Engl J Med', year: 2017, pmid: '27959707', doi: '10.1056/NEJMoa1611391' },
+      { title: 'AWARE: Epidemiology of Acute Kidney Injury in Critically Ill Children and Young Adults', type: 'Trial', journal: 'N Engl J Med', year: 2017, pmid: '27959707', doi: '10.1056/NEJMoa1611391', summary: 'Multinational prospective study found KDIGO-defined severe acute kidney injury (stage 2-3) was independently associated with increased 28-day mortality in critically ill children and young adults.' },
     ]},
     { topic: 'Transfusion', items: [
-      { title: 'TRIPICU: Transfusion Strategies for Patients in Pediatric Intensive Care Units', type: 'Trial', journal: 'N Engl J Med', year: 2007, pmid: '17442904', doi: '10.1056/NEJMoa066240' },
-      { title: 'TAXI: Consensus Recommendations for RBC Transfusion Practice in Critically Ill Children', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2018, pmid: '30180125', doi: '10.1097/PCC.0000000000001613' },
+      { title: 'TRIPICU: Transfusion Strategies for Patients in Pediatric Intensive Care Units', type: 'Trial', journal: 'N Engl J Med', year: 2007, pmid: '17442904', doi: '10.1056/NEJMoa066240', summary: 'Noninferiority RCT found a restrictive transfusion threshold (hemoglobin 7 g/dL) was as safe as a liberal threshold (9.5 g/dL) for multiple organ dysfunction outcomes in stable critically ill children.' },
+      { title: 'TAXI: Consensus Recommendations for RBC Transfusion Practice in Critically Ill Children', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2018, pmid: '30180125', doi: '10.1097/PCC.0000000000001613', summary: 'First dedicated expert-consensus recommendations for RBC transfusion decision-making in critically ill children, filling a gap left by adult-focused transfusion guidelines.' },
     ]},
     { topic: 'Prediction Scores', items: [
-      { title: 'PRISM III: An Updated Pediatric Risk of Mortality Score', type: 'Trial', journal: 'Crit Care Med', year: 1996, pmid: '8706448', doi: '10.1097/00003246-199605000-00004' },
-      { title: 'PIM2: A Revised Version of the Paediatric Index of Mortality', type: 'Trial', journal: 'Intensive Care Med', year: 2003, pmid: '12541154', doi: '10.1007/s00134-002-1601-2' },
-      { title: 'PELOD-2: An Update of the Pediatric Logistic Organ Dysfunction Score', type: 'Trial', journal: 'Crit Care Med', year: 2013, pmid: '23685639', doi: '10.1097/CCM.0b013e31828a2bbd' },
+      { title: 'PRISM III: An Updated Pediatric Risk of Mortality Score', type: 'Trial', journal: 'Crit Care Med', year: 1996, pmid: '8706448', doi: '10.1097/00003246-199605000-00004', summary: 'Developed and validated a third-generation physiology-based pediatric mortality risk score across 32 PICUs, still widely used for case-mix-adjusted outcome benchmarking.' },
+      { title: 'PIM2: A Revised Version of the Paediatric Index of Mortality', type: 'Trial', journal: 'Intensive Care Med', year: 2003, pmid: '12541154', doi: '10.1007/s00134-002-1601-2', summary: 'Revised the original PIM mortality-risk model using a large international multicenter cohort to reflect improved contemporary PICU outcomes.' },
+      { title: 'PELOD-2: An Update of the Pediatric Logistic Organ Dysfunction Score', type: 'Trial', journal: 'Crit Care Med', year: 2013, pmid: '23685639', doi: '10.1097/CCM.0b013e31828a2bbd', summary: 'Updated the multi-organ dysfunction severity score using a larger, more contemporary multicenter PICU cohort from France and Belgium.' },
     ]},
   ];
 
@@ -827,6 +828,7 @@
               </div>
               <div class="lm-title">${escapeHtml(it.title)}</div>
               <div class="lm-meta">${escapeHtml(it.journal)}, ${it.year}</div>
+              ${it.summary ? `<div class="lm-summary">${escapeHtml(it.summary)}</div>` : ''}
               <div class="lm-links">
                 <a href="https://pubmed.ncbi.nlm.nih.gov/${it.pmid}/" target="_blank" rel="noopener">PMID ${it.pmid} ↗</a>
                 ${it.doi ? `<a href="https://doi.org/${encodeURIComponent(it.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
