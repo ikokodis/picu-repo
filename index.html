@@ -163,6 +163,32 @@
 
   .empty-hint { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 24px 10px; }
 
+  .landmarks-heading { font-size: 17px; margin: 0 0 6px; }
+  .landmarks-subtitle { font-size: 12.5px; color: var(--text-muted); margin: 0 0 16px; }
+  .landmarks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .landmark-topic {
+    border: 1px solid var(--border); border-radius: 10px; background: var(--bg); overflow: hidden;
+  }
+  .landmark-topic > summary {
+    cursor: pointer; padding: 10px 14px; font-size: 13.5px; font-weight: 600;
+    list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .landmark-topic > summary::-webkit-details-marker { display: none; }
+  .landmark-topic > summary .count { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+  .landmark-topic[open] > summary { border-bottom: 1px solid var(--border); }
+  .landmark-items { padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .landmark-item { font-size: 12.5px; }
+  .landmark-item .lm-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .landmark-item .lm-type {
+    font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+    background: var(--tier1-bg); color: var(--tier1);
+  }
+  .landmark-item .lm-type.trial { background: var(--tier2-bg); color: var(--tier2); }
+  .landmark-item .lm-title { font-weight: 600; }
+  .landmark-item .lm-meta { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
+  .landmark-item .lm-links { margin-top: 4px; display: flex; gap: 10px; }
+  .landmark-item .lm-links a { font-size: 11.5px; }
+
   footer.note { margin-top: 24px; font-size: 12px; color: var(--text-muted); text-align: center; }
   a { color: var(--accent); }
 
@@ -230,6 +256,12 @@
   </div>
 
   <div id="results"></div>
+
+  <div class="panel" id="landmarksPanel">
+    <h2 class="landmarks-heading">📚 Guidelines &amp; Landmark Papers</h2>
+    <p class="landmarks-subtitle">Curated reference list by topic — foundational trials and society guidelines, not a live feed. Every citation below is verified against its real PubMed record.</p>
+    <div class="landmarks-grid" id="landmarksGrid"></div>
+  </div>
 
   <footer class="note">
     Live data from NCBI PubMed (E-utilities). Evidence tier and quality score are computed client-side from
@@ -731,6 +763,77 @@
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // ---------- Guidelines & Landmark Papers ----------
+  // Static, hand-curated reference list — every PMID/DOI below was checked against its
+  // real PubMed record (title, journal, year) before being added here. Not a live feed;
+  // update manually as new editions of these guidelines are published.
+  const LANDMARKS = [
+    { topic: 'Sepsis & Septic Shock', items: [
+      { title: 'Surviving Sepsis Campaign International Guidelines for the Management of Sepsis and Septic Shock in Children (2026)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2026, pmid: '41869844', doi: '10.1097/PCC.0000000000003927' },
+      { title: 'Surviving Sepsis Campaign International Guidelines on the Management of Septic Shock and Sepsis-Associated Organ Dysfunction in Children (2020)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2020, pmid: '32032273', doi: '10.1097/PCC.0000000000002198' },
+      { title: 'FEAST: Mortality after fluid bolus in African children with severe infection', type: 'Trial', journal: 'N Engl J Med', year: 2011, pmid: '21615299', doi: '10.1056/NEJMoa1101549' },
+    ]},
+    { topic: 'Mechanical Ventilation & ARDS', items: [
+      { title: 'PALICC-2: Second International Guidelines for the Diagnosis and Management of Pediatric ARDS (Executive Summary)', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2023, pmid: '36661420', doi: '10.1097/PCC.0000000000003147' },
+      { title: 'PALICC: Pediatric Acute Respiratory Distress Syndrome — Definition, Incidence, and Epidemiology', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2015, pmid: '26035358', doi: '10.1097/PCC.0000000000000432' },
+      { title: 'RESTORE: Protocolized Sedation vs Usual Care in Pediatric Patients Mechanically Ventilated for Acute Respiratory Failure', type: 'Trial', journal: 'JAMA', year: 2015, pmid: '25602358', doi: '10.1001/jama.2014.18399' },
+    ]},
+    { topic: 'ECMO', items: [
+      { title: 'ELSO Guidelines for Adult and Pediatric Extracorporeal Membrane Oxygenation Circuits', type: 'Guideline', journal: 'ASAIO J', year: 2022, pmid: '35089258', doi: '10.1097/MAT.0000000000001630' },
+      { title: 'UK Collaborative Randomised Trial of Neonatal Extracorporeal Membrane Oxygenation', type: 'Trial', journal: 'Lancet', year: 1996, pmid: '8676720', doi: '' },
+    ]},
+    { topic: 'Cardiac Arrest & Post-Resuscitation', items: [
+      { title: 'THAPCA-OH: Therapeutic Hypothermia after Out-of-Hospital Cardiac Arrest in Children', type: 'Trial', journal: 'N Engl J Med', year: 2015, pmid: '25913022', doi: '10.1056/NEJMoa1411480' },
+      { title: 'THAPCA-IH: Therapeutic Hypothermia after In-Hospital Cardiac Arrest in Children', type: 'Trial', journal: 'N Engl J Med', year: 2017, pmid: '28118559', doi: '10.1056/NEJMoa1610493' },
+    ]},
+    { topic: 'Traumatic Brain Injury', items: [
+      { title: 'Guidelines for the Management of Pediatric Severe Traumatic Brain Injury, Third Edition', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2019, pmid: '30830016', doi: '10.1097/PCC.0000000000001736' },
+    ]},
+    { topic: 'Nutrition', items: [
+      { title: 'ASPEN/SCCM Guidelines for the Provision and Assessment of Nutrition Support Therapy in the Pediatric Critically Ill Patient', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2017, pmid: '28691958', doi: '10.1097/PCC.0000000000001134' },
+    ]},
+    { topic: 'Sedation, Analgesia & Delirium', items: [
+      { title: 'RESTORE: Protocolized Sedation vs Usual Care in Pediatric Patients Mechanically Ventilated for Acute Respiratory Failure', type: 'Trial', journal: 'JAMA', year: 2015, pmid: '25602358', doi: '10.1001/jama.2014.18399' },
+      { title: 'Cornell Assessment of Pediatric Delirium: A Valid, Rapid, Observational Tool for Screening Delirium', type: 'Trial', journal: 'Crit Care Med', year: 2014, pmid: '24145848', doi: '10.1097/CCM.0b013e3182a66b76' },
+    ]},
+    { topic: 'AKI & CRRT', items: [
+      { title: 'AWARE: Epidemiology of Acute Kidney Injury in Critically Ill Children and Young Adults', type: 'Trial', journal: 'N Engl J Med', year: 2017, pmid: '27959707', doi: '10.1056/NEJMoa1611391' },
+    ]},
+    { topic: 'Transfusion', items: [
+      { title: 'TRIPICU: Transfusion Strategies for Patients in Pediatric Intensive Care Units', type: 'Trial', journal: 'N Engl J Med', year: 2007, pmid: '17442904', doi: '10.1056/NEJMoa066240' },
+      { title: 'TAXI: Consensus Recommendations for RBC Transfusion Practice in Critically Ill Children', type: 'Guideline', journal: 'Pediatr Crit Care Med', year: 2018, pmid: '30180125', doi: '10.1097/PCC.0000000000001613' },
+    ]},
+    { topic: 'Prediction Scores', items: [
+      { title: 'PRISM III: An Updated Pediatric Risk of Mortality Score', type: 'Trial', journal: 'Crit Care Med', year: 1996, pmid: '8706448', doi: '10.1097/00003246-199605000-00004' },
+      { title: 'PIM2: A Revised Version of the Paediatric Index of Mortality', type: 'Trial', journal: 'Intensive Care Med', year: 2003, pmid: '12541154', doi: '10.1007/s00134-002-1601-2' },
+      { title: 'PELOD-2: An Update of the Pediatric Logistic Organ Dysfunction Score', type: 'Trial', journal: 'Crit Care Med', year: 2013, pmid: '23685639', doi: '10.1097/CCM.0b013e31828a2bbd' },
+    ]},
+  ];
+
+  function renderLandmarks() {
+    const grid = $('landmarksGrid');
+    grid.innerHTML = LANDMARKS.map(group => `
+      <details class="landmark-topic">
+        <summary>${escapeHtml(group.topic)} <span class="count">${group.items.length}</span></summary>
+        <div class="landmark-items">
+          ${group.items.map(it => `
+            <div class="landmark-item">
+              <div class="lm-top">
+                <span class="lm-type ${it.type === 'Trial' ? 'trial' : ''}">${escapeHtml(it.type)}</span>
+              </div>
+              <div class="lm-title">${escapeHtml(it.title)}</div>
+              <div class="lm-meta">${escapeHtml(it.journal)}, ${it.year}</div>
+              <div class="lm-links">
+                <a href="https://pubmed.ncbi.nlm.nih.gov/${it.pmid}/" target="_blank" rel="noopener">PMID ${it.pmid} ↗</a>
+                ${it.doi ? `<a href="https://doi.org/${encodeURIComponent(it.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </details>
+    `).join('');
+  }
+
   // ---------- Wire up search ----------
   $('searchBtn').addEventListener('click', () => runSearch($('searchInput').value.trim(), $('searchInput').value.trim()));
   $('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('searchBtn').click(); });
@@ -738,6 +841,7 @@
   // ---------- Init ----------
   renderQuickChips();
   renderPinChips();
+  renderLandmarks();
   updateSavedBadge();
   runSearch('', 'Recent high-tier PICU literature');
 })();
