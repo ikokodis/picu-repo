@@ -303,13 +303,14 @@
   const EFETCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi';
 
   const QUICK_TOPICS = [
-    { label: 'pCART / pCREST', q: 'pCART OR pCREST OR (pediatric AND cardiac arrest)' },
-    { label: 'ED transfer / triage', q: '(emergency department OR interfacility) AND (transfer OR triage) AND pediatric critical care' },
-    { label: 'ML / informatics', q: '(machine learning OR artificial intelligence OR clinical informatics) AND pediatric intensive care' },
-    { label: 'ECMO', q: 'extracorporeal membrane oxygenation AND pediatric' },
-    { label: 'Prediction scores', q: '(prediction model OR risk score OR clinical decision rule) AND pediatric intensive care' },
-    { label: 'Sepsis / septic shock', q: 'sepsis OR septic shock AND pediatric intensive care' },
+    { label: 'Cardiac', q: '(congenital heart disease OR cardiac surgery OR cardiogenic shock OR cardiomyopathy) AND pediatric intensive care' },
+    { label: 'Respiratory', q: '(respiratory failure OR bronchiolitis OR pneumonia OR asthma OR ARDS) AND pediatric intensive care' },
+    { label: 'Neurologic / Stroke', q: '(pediatric stroke OR neurocritical care OR status epilepticus) AND pediatric intensive care' },
+    { label: 'Traumatic Brain Injury', q: 'traumatic brain injury AND pediatric intensive care' },
+    { label: 'Trauma', q: '(trauma OR polytrauma OR injury severity) AND pediatric intensive care' },
+    { label: 'Sepsis', q: 'sepsis OR septic shock AND pediatric intensive care' },
     { label: 'Mechanical ventilation', q: '(mechanical ventilation OR respiratory failure) AND pediatric intensive care' },
+    { label: 'ECMO', q: 'extracorporeal membrane oxygenation AND pediatric' },
   ];
 
   const TOP_JOURNALS = [
