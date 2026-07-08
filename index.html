@@ -190,6 +190,16 @@
   .landmark-item .lm-links { margin-top: 4px; display: flex; gap: 10px; }
   .landmark-item .lm-links a { font-size: 11.5px; }
 
+  .weekly-top-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .weekly-item { border: 1px solid var(--border); border-radius: 10px; background: var(--bg); padding: 12px 14px; }
+  .weekly-item .wk-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .weekly-item .wk-rank { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+  .weekly-item .wk-title { font-size: 13px; font-weight: 600; line-height: 1.35; }
+  .weekly-item .wk-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+  .weekly-item .wk-summary { font-size: 12px; margin-top: 6px; line-height: 1.4; }
+  .weekly-item .wk-links { margin-top: 8px; display: flex; gap: 10px; }
+  .weekly-item .wk-links a { font-size: 11.5px; }
+
   footer.note { margin-top: 24px; font-size: 12px; color: var(--text-muted); text-align: center; }
   a { color: var(--accent); }
 
@@ -219,6 +229,12 @@
     <h2 class="landmarks-heading">📚 Guidelines &amp; Landmark Papers</h2>
     <p class="landmarks-subtitle">Curated reference list by topic — foundational trials and society guidelines, not a live feed. Every citation below is verified against its real PubMed record.</p>
     <div class="landmarks-grid" id="landmarksGrid"></div>
+  </div>
+
+  <div class="panel" id="weeklyTopPanel">
+    <h2 class="landmarks-heading">🔥 This Week's Top 3</h2>
+    <p class="landmarks-subtitle">The 3 highest-tier, most recent PICU publications from the past 7 days — ranked automatically by evidence tier and recency (rule-based, not AI-curated).</p>
+    <div class="weekly-top-grid" id="weeklyTopGrid"></div>
   </div>
 
   <div class="panel">
@@ -840,6 +856,66 @@
     `).join('');
   }
 
+  // ---------- This Week's Top 3 ----------
+  // Rule-based, not AI-curated: pulls the same live PubMed feed as the main search
+  // (Tier 1+2 + flagship journals, no topic filter), restricted to the last 7 days,
+  // and ranks by tier then true recency — reusing buildTerm/parsePubmedXml/classify
+  // from the main search pipeline above.
+  async function loadWeeklyTop() {
+    const grid = $('weeklyTopGrid');
+    grid.innerHTML = '<div class="status-msg">Loading this week’s top publications…</div>';
+    try {
+      const term = buildTerm('', '12');
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 7);
+      const fmt = (d) => `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+      const mindate = fmt(start), maxdate = fmt(end);
+
+      const esearchUrl = `${ESEARCH}?db=pubmed&retmode=json&retmax=40&sort=pub_date` +
+        `&datetype=pdat&mindate=${mindate}&maxdate=${maxdate}&term=${encodeURIComponent(term)}`;
+      const esearchRes = await fetch(esearchUrl);
+      if (!esearchRes.ok) throw new Error(`PubMed search failed (HTTP ${esearchRes.status})`);
+      const esearchJson = await esearchRes.json();
+      const ids = (esearchJson.esearchresult && esearchJson.esearchresult.idlist) || [];
+
+      if (ids.length === 0) {
+        grid.innerHTML = '<div class="empty-hint">No new Tier 1/2 PICU publications were indexed on PubMed in the past 7 days.</div>';
+        return;
+      }
+
+      const efetchUrl = `${EFETCH}?db=pubmed&retmode=xml&id=${ids.join(',')}`;
+      const efetchRes = await fetch(efetchUrl);
+      if (!efetchRes.ok) throw new Error(`PubMed fetch failed (HTTP ${efetchRes.status})`);
+      const xmlText = await efetchRes.text();
+      const articles = parsePubmedXml(xmlText).map(classify);
+      articles.sort((a, b) => a.tierRank - b.tierRank || b.sortDate - a.sortDate || b.quality - a.quality);
+      const top3 = articles.slice(0, 3);
+
+      grid.innerHTML = top3.map((a, i) => {
+        const tierClass = a.tier === 1 ? 't1' : a.tier === 2 ? 't2' : 't3';
+        return `
+          <div class="weekly-item">
+            <div class="wk-top">
+              <span class="tier-badge ${tierClass}">Tier ${a.tier}</span>
+              <span class="wk-rank">#${i + 1}</span>
+            </div>
+            <div class="wk-title">${escapeHtml(a.title)}</div>
+            <div class="wk-meta">${escapeHtml(a.journalAbbrev || a.journal)}, ${escapeHtml(a.year)} · ${escapeHtml(a.studyType)}</div>
+            <div class="wk-summary">${escapeHtml(a.summary)}</div>
+            <div class="wk-links">
+              <a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank" rel="noopener">PMID ${a.pmid} ↗</a>
+              ${a.doi ? `<a href="https://doi.org/${encodeURIComponent(a.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error(err);
+      grid.innerHTML = `<div class="status-msg error">Could not load this week's top publications: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
   // ---------- Wire up search ----------
   $('searchBtn').addEventListener('click', () => runSearch($('searchInput').value.trim(), $('searchInput').value.trim()));
   $('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('searchBtn').click(); });
@@ -848,6 +924,7 @@
   renderQuickChips();
   renderPinChips();
   renderLandmarks();
+  loadWeeklyTop();
   updateSavedBadge();
   runSearch('', 'Recent high-tier PICU literature');
 })();
