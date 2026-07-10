@@ -1008,9 +1008,15 @@
   renderQuickChips();
   renderPinChips();
   renderLandmarks();
-  loadWeeklyTop();
   updateSavedBadge();
-  runSearch('', 'Recent high-tier PICU literature');
+  // Run the two independent PubMed fetch pipelines sequentially rather than concurrently —
+  // NCBI E-utilities without an API key is rate-limited to ~3 requests/sec, and firing both
+  // "This Week's Top 3" and the main search's esearch+efetch calls at once on every page
+  // load needlessly doubles the chance of a transient rate-limit failure.
+  (async () => {
+    await loadWeeklyTop();
+    await runSearch('', 'Recent high-tier PICU literature');
+  })();
 })();
 </script>
 </body>
