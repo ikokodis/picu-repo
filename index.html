@@ -925,7 +925,7 @@
     ]},
   ];
 
-  let activeLandmarkTopic = LANDMARKS[0].topic;
+  let activeLandmarkTopic = null;
 
   function renderLandmarks() {
     renderLandmarkTabs();
@@ -950,7 +950,12 @@
 
   function renderLandmarkItems() {
     const grid = $('landmarksGrid');
-    const group = LANDMARKS.find(g => g.topic === activeLandmarkTopic) || LANDMARKS[0];
+    if (!activeLandmarkTopic) {
+      grid.innerHTML = '<div class="empty-hint">Select a topic above to see its guidelines and landmark papers.</div>';
+      return;
+    }
+    const group = LANDMARKS.find(g => g.topic === activeLandmarkTopic);
+    if (!group) { grid.innerHTML = ''; return; }
     grid.innerHTML = group.items.map(it => `
       <div class="landmark-item">
         <div class="lm-top">
