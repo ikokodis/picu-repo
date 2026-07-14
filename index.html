@@ -941,7 +941,7 @@
     `).join('');
     tabs.querySelectorAll('.landmarks-tab').forEach(btn => {
       btn.addEventListener('click', () => {
-        activeLandmarkTopic = btn.dataset.topic;
+        activeLandmarkTopic = (activeLandmarkTopic === btn.dataset.topic) ? null : btn.dataset.topic;
         renderLandmarkTabs();
         renderLandmarkItems();
       });
