@@ -352,6 +352,12 @@
   const TIER1_PT = ['Randomized Controlled Trial', 'Meta-Analysis', 'Systematic Review', 'Controlled Clinical Trial', 'Practice Guideline', 'Guideline'];
   const TIER2_PT = ['Multicenter Study', 'Observational Study', 'Comparative Study', 'Clinical Trial, Phase III', 'Clinical Trial, Phase IV'];
   const EXCLUDE_PT = ['Case Reports', 'Comment', 'Editorial', 'Letter', 'News', 'Biography', 'Retracted Publication'];
+  // Title-level exclusion for content that's specifically about neonates/NICU rather than
+  // the older-infant/child/adolescent population PICU care actually covers.
+  const NICU_EXCLUDE = [
+    '"Intensive Care Units, Neonatal"[Mesh]', 'NICU[ti]', 'neonat*[ti]', 'preterm[ti]',
+    'premature infant*[ti]', 'newborn[ti]', 'very low birth weight[ti]', 'extremely low birth weight[ti]'
+  ].join(' OR ');
 
   // ---------- State ----------
   let saved = new Map(JSON.parse(localStorage.getItem('picu.saved') || '[]'));
@@ -410,7 +416,10 @@
     // "Sepsis"/"Shock, Septic"/"Child" but never "Intensive Care Units, Pediatric" and
     // never say "PICU" in the title or abstract. So also match the age group against a
     // curated set of MeSH terms for conditions that are inherently pediatric-critical-care.
-    const PEDS_AGE_MESH = '(child[Mesh] OR infant[Mesh] OR adolescent[Mesh])';
+    // infant[mesh:noexp] avoids auto-exploding into "Infant, Newborn" via the MeSH tree;
+    // combined with the NICU-specific exclusion below, this cuts down neonatal/NICU
+    // content that isn't actually about pediatric ICU (older infant/child/adolescent) care.
+    const PEDS_AGE_MESH = '(child[Mesh] OR infant[mesh:noexp] OR adolescent[Mesh])';
     const CRITICAL_ILLNESS_MESH = [
       'sepsis', 'shock, septic', 'shock, cardiogenic', 'respiratory insufficiency',
       'respiratory distress syndrome', 'heart arrest', 'extracorporeal membrane oxygenation',
@@ -429,7 +438,7 @@
     } else if (tierMode === '12') {
       pt = ' AND ((' + TIER1_PT.concat(TIER2_PT).map(t => `"${t}"[pt]`).join(' OR ') + `) OR ${journalClause})`;
     }
-    const exclude = ' NOT (' + EXCLUDE_PT.map(t => `"${t}"[pt]`).join(' OR ') + ')';
+    const exclude = ' NOT (' + EXCLUDE_PT.map(t => `"${t}"[pt]`).join(' OR ') + `) NOT (${NICU_EXCLUDE})`;
     const topic = userQuery && userQuery.trim() ? ` AND (${userQuery})` : '';
     return `${base}${topic}${pt}${exclude}`;
   }
