@@ -165,20 +165,23 @@
 
   .landmarks-heading { font-size: 17px; margin: 0 0 6px; }
   .landmarks-subtitle { font-size: 12.5px; color: var(--text-muted); margin: 0 0 16px; }
-  .landmarks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .landmark-topic {
-    border: 1px solid var(--border); border-radius: 10px; background: var(--bg); overflow: hidden;
+
+  .landmarks-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .landmarks-tab {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-muted);
+    border-radius: 999px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;
+    white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
   }
-  .landmark-topic > summary {
-    cursor: pointer; padding: 10px 14px; font-size: 13.5px; font-weight: 600;
-    list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  .landmarks-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .landmarks-tab .count {
+    font-size: 10.5px; font-weight: 700; background: var(--border); color: var(--text-muted);
+    border-radius: 999px; padding: 1px 6px;
   }
-  .landmark-topic > summary::-webkit-details-marker { display: none; }
-  .landmark-topic > summary .count { font-size: 11px; font-weight: 500; color: var(--text-muted); }
-  .landmark-topic[open] > summary { border-bottom: 1px solid var(--border); }
-  .landmark-items {
-    padding: 12px 14px; display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;
+  .landmarks-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .landmarks-tab.active .count { background: rgba(255,255,255,.25); color: #fff; }
+
+  .landmarks-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;
   }
   .landmark-item {
     font-size: 12.5px; border: 1px solid var(--border); border-radius: 8px;
@@ -234,6 +237,7 @@
   <div class="panel" id="landmarksPanel">
     <h2 class="landmarks-heading">📚 Guidelines &amp; Landmark Papers</h2>
     <p class="landmarks-subtitle">Curated reference list by topic — foundational trials and society guidelines, not a live feed. Every citation below is verified against its real PubMed record.</p>
+    <div class="landmarks-tabs" id="landmarksTabs"></div>
     <div class="landmarks-grid" id="landmarksGrid"></div>
   </div>
 
@@ -921,28 +925,45 @@
     ]},
   ];
 
+  let activeLandmarkTopic = LANDMARKS[0].topic;
+
   function renderLandmarks() {
+    renderLandmarkTabs();
+    renderLandmarkItems();
+  }
+
+  function renderLandmarkTabs() {
+    const tabs = $('landmarksTabs');
+    tabs.innerHTML = LANDMARKS.map(group => `
+      <button class="landmarks-tab ${group.topic === activeLandmarkTopic ? 'active' : ''}" data-topic="${escapeHtml(group.topic)}">
+        ${escapeHtml(group.topic)} <span class="count">${group.items.length}</span>
+      </button>
+    `).join('');
+    tabs.querySelectorAll('.landmarks-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeLandmarkTopic = btn.dataset.topic;
+        renderLandmarkTabs();
+        renderLandmarkItems();
+      });
+    });
+  }
+
+  function renderLandmarkItems() {
     const grid = $('landmarksGrid');
-    grid.innerHTML = LANDMARKS.map(group => `
-      <details class="landmark-topic">
-        <summary>${escapeHtml(group.topic)} <span class="count">${group.items.length}</span></summary>
-        <div class="landmark-items">
-          ${group.items.map(it => `
-            <div class="landmark-item">
-              <div class="lm-top">
-                <span class="lm-type ${it.type === 'Trial' ? 'trial' : ''}">${escapeHtml(it.type)}</span>
-              </div>
-              <div class="lm-title">${escapeHtml(it.title)}</div>
-              <div class="lm-meta">${escapeHtml(it.journal)}, ${it.year}</div>
-              ${it.summary ? `<div class="lm-summary">${escapeHtml(it.summary)}</div>` : ''}
-              <div class="lm-links">
-                <a href="https://pubmed.ncbi.nlm.nih.gov/${it.pmid}/" target="_blank" rel="noopener">PMID ${it.pmid} ↗</a>
-                ${it.doi ? `<a href="https://doi.org/${encodeURIComponent(it.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
-              </div>
-            </div>
-          `).join('')}
+    const group = LANDMARKS.find(g => g.topic === activeLandmarkTopic) || LANDMARKS[0];
+    grid.innerHTML = group.items.map(it => `
+      <div class="landmark-item">
+        <div class="lm-top">
+          <span class="lm-type ${it.type === 'Trial' ? 'trial' : ''}">${escapeHtml(it.type)}</span>
         </div>
-      </details>
+        <div class="lm-title">${escapeHtml(it.title)}</div>
+        <div class="lm-meta">${escapeHtml(it.journal)}, ${it.year}</div>
+        ${it.summary ? `<div class="lm-summary">${escapeHtml(it.summary)}</div>` : ''}
+        <div class="lm-links">
+          <a href="https://pubmed.ncbi.nlm.nih.gov/${it.pmid}/" target="_blank" rel="noopener">PMID ${it.pmid} ↗</a>
+          ${it.doi ? `<a href="https://doi.org/${encodeURIComponent(it.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
+        </div>
+      </div>
     `).join('');
   }
 
