@@ -335,6 +335,28 @@
   const ESEARCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi';
   const EFETCH = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi';
 
+  // NCBI E-utilities occasionally returns a transient 5xx (confirmed in testing) or the
+  // browser's fetch itself can throw on a flaky connection. One quick retry after a short
+  // delay clears most of these without the user having to notice or re-search manually.
+  async function fetchWithRetry(url, retries = 1, delayMs = 800) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok && res.status >= 500 && attempt < retries) {
+          await new Promise(r => setTimeout(r, delayMs));
+          continue;
+        }
+        return res;
+      } catch (err) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, delayMs));
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
   const QUICK_TOPICS = [
     { label: 'Cardiac', q: '(congenital heart disease OR cardiac surgery OR cardiogenic shock OR cardiomyopathy) AND pediatric intensive care' },
     { label: 'Respiratory', q: '(respiratory failure OR bronchiolitis OR pneumonia OR asthma OR ARDS) AND pediatric intensive care' },
@@ -485,7 +507,7 @@
       const poolSize = Math.min(Math.max(Number(count) * 8, 50), 100);
       const esearchUrl = `${ESEARCH}?db=pubmed&retmode=json&retmax=${poolSize}&sort=pub_date` +
         `&datetype=pdat&mindate=${mindate}&maxdate=${maxdate}&term=${encodeURIComponent(term)}`;
-      const esearchRes = await fetch(esearchUrl);
+      const esearchRes = await fetchWithRetry(esearchUrl);
       if (!esearchRes.ok) throw new Error(`PubMed search failed (HTTP ${esearchRes.status})`);
       const esearchJson = await esearchRes.json();
       const ids = (esearchJson.esearchresult && esearchJson.esearchresult.idlist) || [];
@@ -498,7 +520,7 @@
       }
 
       const efetchUrl = `${EFETCH}?db=pubmed&retmode=xml&id=${ids.join(',')}`;
-      const efetchRes = await fetch(efetchUrl);
+      const efetchRes = await fetchWithRetry(efetchUrl);
       if (!efetchRes.ok) throw new Error(`PubMed fetch failed (HTTP ${efetchRes.status})`);
       const xmlText = await efetchRes.text();
       const allArticles = parsePubmedXml(xmlText).map(classify);
@@ -1034,7 +1056,7 @@
 
       const esearchUrl = `${ESEARCH}?db=pubmed&retmode=json&retmax=40&sort=pub_date` +
         `&datetype=pdat&mindate=${mindate}&maxdate=${maxdate}&term=${encodeURIComponent(term)}`;
-      const esearchRes = await fetch(esearchUrl);
+      const esearchRes = await fetchWithRetry(esearchUrl);
       if (!esearchRes.ok) throw new Error(`PubMed search failed (HTTP ${esearchRes.status})`);
       const esearchJson = await esearchRes.json();
       const ids = (esearchJson.esearchresult && esearchJson.esearchresult.idlist) || [];
@@ -1045,7 +1067,7 @@
       }
 
       const efetchUrl = `${EFETCH}?db=pubmed&retmode=xml&id=${ids.join(',')}`;
-      const efetchRes = await fetch(efetchUrl);
+      const efetchRes = await fetchWithRetry(efetchUrl);
       if (!efetchRes.ok) throw new Error(`PubMed fetch failed (HTTP ${efetchRes.status})`);
       const xmlText = await efetchRes.text();
       const articles = parsePubmedXml(xmlText).map(classify);
