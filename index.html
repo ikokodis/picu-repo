@@ -174,7 +174,8 @@
   .drawer-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 13px; }
   .drawer-item h4 { margin: 0 0 4px; font-size: 13.5px; }
   .drawer-item .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
-  .drawer-foot { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .drawer-foot { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+  .drawer-foot button { min-width: 80px; }
   .drawer-foot button { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; font-size: 13px; }
   .drawer-foot button.primary { background: var(--accent); color: #fff; border: none; }
 
@@ -333,6 +334,7 @@
   <div class="drawer-body" id="drawerBody"></div>
   <div class="drawer-foot">
     <button id="exportCsv">Export CSV</button>
+    <button id="exportRis" title="Download a .ris file to import into Zotero, EndNote, Mendeley, etc.">Export RIS</button>
     <button class="primary" id="clearSaved">Clear all</button>
   </div>
 </div>
@@ -346,6 +348,7 @@
   <div class="drawer-body" id="flaggedDrawerBody"></div>
   <div class="drawer-foot">
     <button id="exportFlaggedCsv">Export CSV</button>
+    <button id="exportFlaggedRis" title="Download a .ris file to import into Zotero, EndNote, Mendeley, etc.">Export RIS</button>
     <button class="primary" id="clearFlagged">Clear all</button>
   </div>
 </div>
@@ -770,8 +773,11 @@
       <div class="card-actions">
         <a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank" rel="noopener">PMID ${a.pmid} ↗</a>
         ${a.doi ? `<a href="https://doi.org/${encodeURIComponent(a.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
+        <button class="cite-btn">Cite ↓</button>
       </div>
+      ${coinsSpan(a)}
     `;
+    card.querySelector('.cite-btn').addEventListener('click', () => downloadRIS([a], `picu-${a.pmid}`));
     card.querySelector('.save-btn').addEventListener('click', () => toggleSave(a, card.querySelector('.save-btn')));
     const flagBtn = card.querySelector('.flag-btn');
     if (flagBtn) flagBtn.addEventListener('click', () => toggleFlag(a, flagBtn));
@@ -890,6 +896,7 @@
     link.click();
     URL.revokeObjectURL(url);
   });
+  $('exportRis').addEventListener('click', () => downloadRIS(Array.from(saved.values()), 'picu-saved-articles'));
 
   // ---------- Flagged (landmark candidate) drawer ----------
   function openFlaggedDrawer() {
@@ -959,6 +966,7 @@
     link.click();
     URL.revokeObjectURL(url);
   });
+  $('exportFlaggedRis').addEventListener('click', () => downloadRIS(Array.from(flagged.values()), 'picu-landmark-candidates'));
   function csvEscape(v) {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -966,6 +974,64 @@
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // ---------- Reference-manager export (RIS + COinS) ----------
+  // RIS is the plain-text format Zotero, EndNote, and Mendeley all import directly.
+  // COinS is a hidden per-item metadata tag the Zotero Browser Connector extension
+  // auto-detects on the page, without the user needing to export anything at all.
+  function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function authorToRIS(name) {
+    const parts = String(name).trim().split(/\s+/);
+    if (parts.length < 2) return name;
+    const initials = parts.pop();
+    return `${parts.join(' ')}, ${initials}`;
+  }
+
+  function articleToRIS(a) {
+    const lines = ['TY  - JOUR'];
+    (a.authors || []).forEach(name => lines.push(`AU  - ${authorToRIS(name)}`));
+    lines.push(`TI  - ${a.title}`);
+    lines.push(`T2  - ${a.journalAbbrev || a.journal || ''}`);
+    if (a.year) lines.push(`PY  - ${a.year}`);
+    if (a.doi) lines.push(`DO  - ${a.doi}`);
+    if (a.pmid) lines.push(`AN  - ${a.pmid}`);
+    if (a.pmid) lines.push(`UR  - https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/`);
+    lines.push('ER  - ');
+    return lines.join('\n');
+  }
+
+  function articlesToRIS(articles) {
+    return articles.map(articleToRIS).join('\n\n');
+  }
+
+  function downloadRIS(articles, filenamePrefix) {
+    if (articles.length === 0) return;
+    downloadFile(articlesToRIS(articles), `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.ris`, 'application/x-research-info-systems');
+  }
+
+  function coinsSpan(a) {
+    const params = [
+      'ctx_ver=Z39.88-2004',
+      'rft_val_fmt=' + encodeURIComponent('info:ofi/fmt:kev:mtx:journal'),
+      'rft.genre=article',
+      'rft.atitle=' + encodeURIComponent(a.title || ''),
+      'rft.jtitle=' + encodeURIComponent(a.journalAbbrev || a.journal || ''),
+      'rft.date=' + encodeURIComponent(String(a.year || '')),
+    ];
+    (a.authors || []).forEach(name => params.push('rft.au=' + encodeURIComponent(name)));
+    if (a.doi) params.push('rft_id=' + encodeURIComponent('info:doi/' + a.doi));
+    if (a.pmid) params.push('rft_id=' + encodeURIComponent('info:pmid/' + a.pmid));
+    return `<span class="Z3988" title="${escapeHtml(params.join('&'))}"></span>`;
   }
 
   // ---------- Guidelines & Landmark Papers ----------
@@ -1210,9 +1276,19 @@
         <div class="lm-links">
           <a href="https://pubmed.ncbi.nlm.nih.gov/${it.pmid}/" target="_blank" rel="noopener">PMID ${it.pmid} ↗</a>
           ${it.doi ? `<a href="https://doi.org/${encodeURIComponent(it.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
+          <button class="lm-cite-btn" data-pmid="${it.pmid}">Cite ↓</button>
         </div>
       </div>
+      ${coinsSpan(it)}
     `;
+  }
+
+  function findLandmarkItemByPmid(pmid) {
+    for (const group of LANDMARKS) {
+      const item = group.items.find(it => it.pmid === pmid);
+      if (item) return item;
+    }
+    return null;
   }
 
   function renderLandmarkItems() {
@@ -1318,6 +1394,12 @@
     landmarkSearchQuery = $('landmarksSearch').value.trim();
     renderLandmarkTabs();
     renderLandmarkItems();
+  });
+  $('landmarksGrid').addEventListener('click', (e) => {
+    const btn = e.target.closest('.lm-cite-btn');
+    if (!btn) return;
+    const item = findLandmarkItemByPmid(btn.dataset.pmid);
+    if (item) downloadRIS([item], `picu-${item.pmid}`);
   });
 
   // ---------- Init ----------
