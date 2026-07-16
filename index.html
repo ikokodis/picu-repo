@@ -136,6 +136,13 @@
   .tier-badge.t3 { background: var(--tier3-bg); color: var(--tier3); }
   .study-type { font-size: 12px; color: var(--text-muted); font-weight: 600; }
   .save-btn { border: none; background: transparent; cursor: pointer; font-size: 18px; color: var(--text-muted); line-height: 1; padding: 2px; }
+  .card-top-actions { display: flex; align-items: center; gap: 6px; }
+  .flag-btn { border: none; background: transparent; cursor: pointer; font-size: 16px; line-height: 1; padding: 2px; opacity: .35; }
+  .flag-btn.flagged { opacity: 1; }
+  .landmark-candidate-tag {
+    font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft);
+    border-radius: 6px; padding: 4px 8px; display: inline-block;
+  }
   .save-btn.saved { color: #e0ab4a; }
 
   .card h3 { font-size: 15.5px; margin: 0; line-height: 1.35; }
@@ -247,6 +254,9 @@
       <button class="icon-btn" id="openSaved" title="Saved articles">
         ★ Saved <span class="badge" id="savedBadge">0</span>
       </button>
+      <button class="icon-btn" id="openFlagged" title="Landmark candidates">
+        🚩 Flagged <span class="badge" id="flaggedBadge">0</span>
+      </button>
     </div>
   </header>
 
@@ -327,6 +337,19 @@
   </div>
 </div>
 
+<div class="drawer-overlay" id="flaggedDrawerOverlay"></div>
+<div class="drawer" id="flaggedDrawer">
+  <div class="drawer-head">
+    <strong>Flagged as landmark candidates</strong>
+    <button class="icon-btn" id="closeFlaggedDrawer">✕</button>
+  </div>
+  <div class="drawer-body" id="flaggedDrawerBody"></div>
+  <div class="drawer-foot">
+    <button id="exportFlaggedCsv">Export CSV</button>
+    <button class="primary" id="clearFlagged">Clear all</button>
+  </div>
+</div>
+
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -402,6 +425,7 @@
 
   // ---------- State ----------
   let saved = new Map(JSON.parse(localStorage.getItem('picu.saved') || '[]'));
+  let flagged = new Map(JSON.parse(localStorage.getItem('picu.flagged') || '[]'));
   let pins = JSON.parse(localStorage.getItem('picu.pins') || '[]');
   let lastQuery = null;
 
@@ -677,11 +701,18 @@
 
     const summary = summarize(a.abstract);
 
+    // Rule-based, not curated judgment: Tier 1 + guideline-type + not already in the
+    // Guidelines & Landmark Papers list. Surfaced as a flag for the user to review and
+    // decide whether to actually add, not an automatic addition.
+    const isLandmarkCandidate = tier === 1 &&
+      (studyType === 'Practice Guideline' || studyType === 'Guideline') &&
+      !LANDMARK_PMIDS.has(a.pmid);
+
     const sortDate = datePartsToTimestamp(a.electronicDateParts) ||
       datePartsToTimestamp(a.entrezDateParts) ||
       datePartsToTimestamp(a.pubDateParts);
 
-    return { ...a, tier, tierRank, studyType, quality, tags, summary, sortDate };
+    return { ...a, tier, tierRank, studyType, quality, tags, summary, sortDate, isLandmarkCandidate };
   }
 
   function summarize(abstract) {
@@ -711,14 +742,19 @@
     card.dataset.pmid = a.pmid;
     const tierClass = a.tier === 1 ? 't1' : a.tier === 2 ? 't2' : 't3';
     const isSaved = saved.has(a.pmid);
+    const isFlagged = flagged.has(a.pmid);
 
     const dots = Array.from({ length: 5 }, (_, i) => `<span class="dot ${i < a.quality ? 'on' : ''}"></span>`).join('');
 
     card.innerHTML = `
       <div class="card-top">
         <span class="tier-badge ${tierClass}">Tier ${a.tier}</span>
-        <button class="save-btn ${isSaved ? 'saved' : ''}" title="Save article">${isSaved ? '★' : '☆'}</button>
+        <div class="card-top-actions">
+          ${a.isLandmarkCandidate ? `<button class="flag-btn ${isFlagged ? 'flagged' : ''}" title="Flag as landmark candidate">🚩</button>` : ''}
+          <button class="save-btn ${isSaved ? 'saved' : ''}" title="Save article">${isSaved ? '★' : '☆'}</button>
+        </div>
       </div>
+      ${a.isLandmarkCandidate ? '<div class="landmark-candidate-tag">📚 Possible landmark candidate — not yet in the curated list</div>' : ''}
       <h3>${escapeHtml(a.title)}</h3>
       <div class="meta-line">
         <span class="study-type">${escapeHtml(a.studyType)}</span>
@@ -737,6 +773,8 @@
       </div>
     `;
     card.querySelector('.save-btn').addEventListener('click', () => toggleSave(a, card.querySelector('.save-btn')));
+    const flagBtn = card.querySelector('.flag-btn');
+    if (flagBtn) flagBtn.addEventListener('click', () => toggleFlag(a, flagBtn));
     return card;
   }
 
@@ -759,6 +797,27 @@
   function updateSavedBadge() {
     const n = saved.size;
     const badge = $('savedBadge');
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'flex' : 'none';
+  }
+
+  function toggleFlag(a, btn) {
+    if (flagged.has(a.pmid)) {
+      flagged.delete(a.pmid);
+      btn.classList.remove('flagged');
+    } else {
+      flagged.set(a.pmid, a);
+      btn.classList.add('flagged');
+    }
+    persistFlagged();
+    updateFlaggedBadge();
+  }
+  function persistFlagged() {
+    localStorage.setItem('picu.flagged', JSON.stringify(Array.from(flagged.entries())));
+  }
+  function updateFlaggedBadge() {
+    const n = flagged.size;
+    const badge = $('flaggedBadge');
     badge.textContent = n;
     badge.style.display = n > 0 ? 'flex' : 'none';
   }
@@ -828,6 +887,75 @@
     const link = document.createElement('a');
     link.href = url;
     link.download = `picu-saved-articles-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ---------- Flagged (landmark candidate) drawer ----------
+  function openFlaggedDrawer() {
+    renderFlaggedDrawer();
+    $('flaggedDrawer').classList.add('open');
+    $('flaggedDrawerOverlay').classList.add('open');
+  }
+  function closeFlaggedDrawerFn() {
+    $('flaggedDrawer').classList.remove('open');
+    $('flaggedDrawerOverlay').classList.remove('open');
+  }
+  function renderFlaggedDrawer() {
+    const body = $('flaggedDrawerBody');
+    if (flagged.size === 0) {
+      body.innerHTML = '<div class="empty-hint">No flagged candidates yet. Click 🚩 on a Tier 1 guideline card to flag it for review.</div>';
+      return;
+    }
+    body.innerHTML = '';
+    Array.from(flagged.values()).forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'drawer-item';
+      item.innerHTML = `
+        <h4>${escapeHtml(a.title)}</h4>
+        <div class="meta-line">${escapeHtml(a.journalAbbrev || a.journal)} · ${escapeHtml(a.year)} · Tier ${a.tier} · ${escapeHtml(a.studyType)}</div>
+        <div class="row">
+          <a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank" rel="noopener">PMID ${a.pmid} ↗</a>
+          <button data-pmid="${a.pmid}" class="rm-flagged">Remove</button>
+        </div>
+      `;
+      item.querySelector('.rm-flagged').addEventListener('click', () => {
+        flagged.delete(a.pmid);
+        persistFlagged();
+        updateFlaggedBadge();
+        renderFlaggedDrawer();
+        const btn = document.querySelector(`.card[data-pmid="${a.pmid}"] .flag-btn`);
+        if (btn) btn.classList.remove('flagged');
+      });
+      body.appendChild(item);
+    });
+  }
+  $('openFlagged').addEventListener('click', openFlaggedDrawer);
+  $('closeFlaggedDrawer').addEventListener('click', closeFlaggedDrawerFn);
+  $('flaggedDrawerOverlay').addEventListener('click', closeFlaggedDrawerFn);
+  $('clearFlagged').addEventListener('click', () => {
+    if (flagged.size === 0) return;
+    if (!confirm('Remove all flagged candidates?')) return;
+    flagged.clear();
+    persistFlagged();
+    updateFlaggedBadge();
+    renderFlaggedDrawer();
+  });
+  $('exportFlaggedCsv').addEventListener('click', () => {
+    if (flagged.size === 0) return;
+    const rows = [['PMID', 'Title', 'Journal', 'Year', 'Tier', 'Study Type', 'Quality', 'Authors', 'DOI', 'PubMed URL']];
+    Array.from(flagged.values()).forEach(a => {
+      rows.push([
+        a.pmid, a.title, a.journalAbbrev || a.journal, a.year, a.tier, a.studyType, a.quality,
+        a.authors.join('; '), a.doi, `https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/`
+      ]);
+    });
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `picu-landmark-candidates-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   });
@@ -974,6 +1102,8 @@
       { title: 'PELOD-2: An Update of the Pediatric Logistic Organ Dysfunction Score', type: 'Trial', journal: 'Crit Care Med', year: 2013, pmid: '23685639', doi: '10.1097/CCM.0b013e31828a2bbd', summary: 'Updated the multi-organ dysfunction severity score using a larger, more contemporary multicenter PICU cohort from France and Belgium.' },
     ]},
   ];
+
+  const LANDMARK_PMIDS = new Set(LANDMARKS.flatMap(g => g.items.map(it => it.pmid)));
 
   let activeLandmarkTopic = null;
   let landmarkSearchQuery = '';
@@ -1192,6 +1322,7 @@
   renderPinChips();
   renderLandmarks();
   updateSavedBadge();
+  updateFlaggedBadge();
   // Run the two independent PubMed fetch pipelines sequentially rather than concurrently —
   // NCBI E-utilities without an API key is rate-limited to ~3 requests/sec, and firing both
   // "This Week's Top 3" and the main search's esearch+efetch calls at once on every page
