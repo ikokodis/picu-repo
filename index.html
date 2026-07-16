@@ -108,6 +108,16 @@
   .range-row output { font-size: 13px; color: var(--text); min-width: 70px; }
 
   .summary-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; }
+
+  .landmark-suggestion {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 12px; font-size: 13px;
+  }
+  .landmark-suggestion button {
+    border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 8px;
+    padding: 6px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  }
   .summary-bar .save-pin-btn {
     border: 1px dashed var(--border); background: transparent; color: var(--accent);
     border-radius: 8px; padding: 5px 10px; font-size: 12.5px; cursor: pointer;
@@ -256,7 +266,7 @@
 
   <div class="panel">
     <div class="search-row">
-      <input type="text" id="searchInput" placeholder="Search PICU topic (e.g. sepsis, ECMO, traumatic brain injury)…">
+      <input type="text" id="searchInput" placeholder="Search a topic or ask a question (e.g. &quot;are there new brain death guidelines?&quot;)…">
       <button class="primary" id="searchBtn">Search</button>
     </div>
     <div class="chips" id="quickChips"></div>
@@ -288,6 +298,8 @@
       </div>
     </div>
   </div>
+
+  <div id="landmarkSuggestion"></div>
 
   <div class="summary-bar" id="summaryBar" style="display:none;">
     <span id="summaryText"></span>
@@ -971,6 +983,68 @@
     renderLandmarkItems();
   }
 
+  // ---------- "Ask a question" support ----------
+  // Rule-based, not AI: strips common question phrasing so a query like "are there new
+  // brain death guidelines?" reduces to "brain death guidelines" before it's used as the
+  // live-search topic term, and separately checked against the curated Landmarks list.
+  function stripQuestionFluff(text) {
+    let t = text.trim().replace(/\?+$/, '').trim();
+    const leadIns = [
+      /^are there\s+(any\s+)?(new\s+)?/i,
+      /^is there\s+(a\s+|any\s+)?(new\s+)?/i,
+      /^what(?:'s| is| are)\s+(the\s+)?(new\s+)?/i,
+      /^any new\s+/i,
+      /^any recent\s+/i,
+      /^do we have\s+(any\s+)?(new\s+)?/i,
+      /^has there been\s+(a\s+|any\s+)?(new\s+)?/i,
+      /^have there been\s+(any\s+)?(new\s+)?/i,
+      /^what about\s+/i,
+      /^tell me about\s+/i,
+      /^show me\s+/i,
+    ];
+    for (const re of leadIns) {
+      if (re.test(t)) { t = t.replace(re, ''); break; }
+    }
+    return t.trim();
+  }
+
+  const LANDMARK_STOPWORDS = new Set([
+    'new', 'recent', 'guidelines', 'guideline', 'papers', 'paper', 'articles', 'article',
+    'the', 'a', 'an', 'for', 'on', 'in', 'of', 'and', 'or', 'is', 'are', 'any'
+  ]);
+
+  function findLandmarkMatches(queryText) {
+    const words = queryText.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !LANDMARK_STOPWORDS.has(w));
+    if (words.length === 0) return [];
+    return LANDMARKS
+      .map(group => {
+        const topicLower = group.topic.toLowerCase();
+        const hits = words.filter(w => topicLower.includes(w)).length;
+        return { topic: group.topic, count: group.items.length, hits };
+      })
+      .filter(m => m.hits >= Math.max(1, Math.ceil(words.length * 0.5)))
+      .sort((a, b) => b.hits - a.hits);
+  }
+
+  function showLandmarkSuggestion(queryText) {
+    const box = $('landmarkSuggestion');
+    const matches = findLandmarkMatches(queryText);
+    if (matches.length === 0) { box.innerHTML = ''; return; }
+    const top = matches[0];
+    box.innerHTML = `
+      <span>📚 This topic is already in the curated list — <strong>${escapeHtml(top.topic)}</strong> (${top.count} paper${top.count === 1 ? '' : 's'})</span>
+      <button id="landmarkSuggestionBtn">View</button>
+    `;
+    $('landmarkSuggestionBtn').addEventListener('click', () => {
+      $('landmarksSearch').value = '';
+      landmarkSearchQuery = '';
+      activeLandmarkTopic = top.topic;
+      renderLandmarkTabs();
+      renderLandmarkItems();
+      $('landmarksPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   function renderLandmarkTabs() {
     const tabs = $('landmarksTabs');
     tabs.classList.toggle('dimmed', landmarkSearchQuery.length > 0);
@@ -1099,7 +1173,12 @@
   }
 
   // ---------- Wire up search ----------
-  $('searchBtn').addEventListener('click', () => runSearch($('searchInput').value.trim(), $('searchInput').value.trim()));
+  $('searchBtn').addEventListener('click', () => {
+    const raw = $('searchInput').value.trim();
+    const cleaned = stripQuestionFluff(raw);
+    showLandmarkSuggestion(cleaned);
+    runSearch(cleaned, raw);
+  });
   $('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('searchBtn').click(); });
 
   $('landmarksSearch').addEventListener('input', () => {
