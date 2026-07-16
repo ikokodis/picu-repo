@@ -166,7 +166,12 @@
   .landmarks-heading { font-size: 17px; margin: 0 0 6px; }
   .landmarks-subtitle { font-size: 12.5px; color: var(--text-muted); margin: 0 0 16px; }
 
+  .landmarks-search-input {
+    width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 13px; margin-bottom: 12px;
+  }
   .landmarks-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .landmarks-tabs.dimmed { opacity: .45; }
   .landmarks-tab {
     border: 1px solid var(--border); background: var(--bg); color: var(--text-muted);
     border-radius: 999px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;
@@ -193,6 +198,7 @@
     background: var(--tier1-bg); color: var(--tier1);
   }
   .landmark-item .lm-type.trial { background: var(--tier2-bg); color: var(--tier2); }
+  .landmark-item .lm-topic-tag { font-size: 10.5px; color: var(--text-muted); }
   .landmark-item .lm-title { font-weight: 600; margin-top: 6px; line-height: 1.35; }
   .landmark-item .lm-meta { color: var(--text-muted); font-size: 11.5px; margin-top: 4px; }
   .landmark-item .lm-summary { font-size: 12px; margin-top: 6px; line-height: 1.4; }
@@ -237,6 +243,7 @@
   <div class="panel" id="landmarksPanel">
     <h2 class="landmarks-heading">📚 Guidelines &amp; Landmark Papers</h2>
     <p class="landmarks-subtitle">Curated reference list by topic — foundational trials and society guidelines, not a live feed. Every citation below is verified against its real PubMed record.</p>
+    <input type="text" id="landmarksSearch" class="landmarks-search-input" placeholder="Search all landmark papers by title or journal…">
     <div class="landmarks-tabs" id="landmarksTabs"></div>
     <div class="landmarks-grid" id="landmarksGrid"></div>
   </div>
@@ -935,6 +942,7 @@
   ];
 
   let activeLandmarkTopic = null;
+  let landmarkSearchQuery = '';
 
   function renderLandmarks() {
     renderLandmarkTabs();
@@ -943,6 +951,7 @@
 
   function renderLandmarkTabs() {
     const tabs = $('landmarksTabs');
+    tabs.classList.toggle('dimmed', landmarkSearchQuery.length > 0);
     tabs.innerHTML = LANDMARKS.map(group => `
       <button class="landmarks-tab ${group.topic === activeLandmarkTopic ? 'active' : ''}" data-topic="${escapeHtml(group.topic)}">
         ${escapeHtml(group.topic)} <span class="count">${group.items.length}</span>
@@ -950,6 +959,8 @@
     `).join('');
     tabs.querySelectorAll('.landmarks-tab').forEach(btn => {
       btn.addEventListener('click', () => {
+        $('landmarksSearch').value = '';
+        landmarkSearchQuery = '';
         activeLandmarkTopic = (activeLandmarkTopic === btn.dataset.topic) ? null : btn.dataset.topic;
         renderLandmarkTabs();
         renderLandmarkItems();
@@ -957,18 +968,12 @@
     });
   }
 
-  function renderLandmarkItems() {
-    const grid = $('landmarksGrid');
-    if (!activeLandmarkTopic) {
-      grid.innerHTML = '<div class="empty-hint">Select a topic above to see its guidelines and landmark papers.</div>';
-      return;
-    }
-    const group = LANDMARKS.find(g => g.topic === activeLandmarkTopic);
-    if (!group) { grid.innerHTML = ''; return; }
-    grid.innerHTML = group.items.map(it => `
+  function renderLandmarkItem(it, showTopic) {
+    return `
       <div class="landmark-item">
         <div class="lm-top">
           <span class="lm-type ${it.type === 'Trial' ? 'trial' : ''}">${escapeHtml(it.type)}</span>
+          ${showTopic ? `<span class="lm-topic-tag">${escapeHtml(it._topic)}</span>` : ''}
         </div>
         <div class="lm-title">${escapeHtml(it.title)}</div>
         <div class="lm-meta">${escapeHtml(it.journal)}, ${it.year}</div>
@@ -978,7 +983,37 @@
           ${it.doi ? `<a href="https://doi.org/${encodeURIComponent(it.doi)}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
         </div>
       </div>
-    `).join('');
+    `;
+  }
+
+  function renderLandmarkItems() {
+    const grid = $('landmarksGrid');
+
+    if (landmarkSearchQuery) {
+      const q = landmarkSearchQuery.toLowerCase();
+      const matches = [];
+      LANDMARKS.forEach(group => {
+        group.items.forEach(it => {
+          if (it.title.toLowerCase().includes(q) || it.journal.toLowerCase().includes(q)) {
+            matches.push({ ...it, _topic: group.topic });
+          }
+        });
+      });
+      if (matches.length === 0) {
+        grid.innerHTML = `<div class="empty-hint">No landmark papers match "${escapeHtml(landmarkSearchQuery)}".</div>`;
+        return;
+      }
+      grid.innerHTML = matches.map(it => renderLandmarkItem(it, true)).join('');
+      return;
+    }
+
+    if (!activeLandmarkTopic) {
+      grid.innerHTML = '<div class="empty-hint">Select a topic above, or search, to see guidelines and landmark papers.</div>';
+      return;
+    }
+    const group = LANDMARKS.find(g => g.topic === activeLandmarkTopic);
+    if (!group) { grid.innerHTML = ''; return; }
+    grid.innerHTML = group.items.map(it => renderLandmarkItem(it, false)).join('');
   }
 
   // ---------- This Week's Top 3 ----------
@@ -1044,6 +1079,12 @@
   // ---------- Wire up search ----------
   $('searchBtn').addEventListener('click', () => runSearch($('searchInput').value.trim(), $('searchInput').value.trim()));
   $('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('searchBtn').click(); });
+
+  $('landmarksSearch').addEventListener('input', () => {
+    landmarkSearchQuery = $('landmarksSearch').value.trim();
+    renderLandmarkTabs();
+    renderLandmarkItems();
+  });
 
   // ---------- Init ----------
   renderQuickChips();
